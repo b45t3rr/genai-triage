@@ -1,0 +1,18 @@
+# Core dependencies
+langchain
+PyPDF2
+typer
+pydantic
+pydantic-settings
+python-dotenv
+rich
+
+# LLM Provider dependencies
+langchain-openai
+langchain-google-genai
+langchain-anthropic
+openai
+
+# Optional dependencies
+pymongo
+semgrep

@@ -1,0 +1,112 @@
+{
+    "documento": {
+        "titulo": "Vulnerability Assessment Report",
+        "fecha": "Desconocida",
+        "autor": "Desconocido",
+        "tipo_documento": "Security Assessment Report",
+        "numero_paginas": 8
+    },
+    "resumen_ejecutivo": "Informe de evaluación de vulnerabilidades de la aplicación web en http://localhost:5000/. Se identificaron múltiples vulnerabilidades críticas y altas (principalmente SSRF, SQL Injection y LFI) con un riesgo global alto que requiere remediación inmediata. El análisis también detecta una vulnerabilidad de XSS de bajo impacto y desglosa controles de acceso insuficientes (IDOR). Se recomienda establecer controles de seguridad tempranos en el ciclo de vida del desarrollo y reforzar la validación de entradas, la segregación de red y las políticas de acceso.",
+    "hallazgos_principales": [
+        {
+            "categoria": "Server-Side Request Forgery (SSRF)",
+            "descripcion": "Vulnerabilidad SSRF en el endpoint que fetches recursos externos, permitiendo que atacante acceda a recursos internos de la red.",
+            "severidad": "Crítico",
+            "impacto": "Acceso no autorizado a recursos internos, posible disclosión de configuración y pivot hacia dispositivos internos",
+            "detailed_proof_of_concept": "Solicitudes de prueba: GET /api/fetch?api_key=insecure_api_key_123&url=http://internal-server/secret.txt HTTP/1.1; Host: localhost:5000. Respuesta contiene secretos internos: INTERNAL_SECRET_FLAG{ssrf_test_successful_internal_access}; Detalles internos del servidor objetivo indicados (Hostname: internal-server, Servicio: nginx, Timestamp: 2024-01-01T00:00:00Z)."
+        },
+        {
+            "categoria": "SQL Injection (Login Form)",
+            "descripcion": "Formulario de inicio de sesión vulnerable a inyección SQL, con posibilidad de eludir autenticación o extraer información de la base de datos.",
+            "severidad": "Alta",
+            "impacto": "Autenticación potencialmente bypassed, posible acceso no autorizado a datos de la base",
+            "detailed_proof_of_concept": "Solicitud: POST /login HTTP/1.1; Cuerpo: username=admin%27+or+%271%27%3D%271+--&password=admin%27+or+%271%27%3D%271+--. Payload decodificado: \"admin' or '1'='1 -- \". Respuesta: 302 FOUND redirigiendo a /. Recomendaciones incluidas: consultas parametrizadas, validación de entradas, menor privilegio, reglas WAF para detectar inyección SQL."
+        },
+        {
+            "categoria": "Local File Inclusion (Path Traversal)",
+            "descripcion": "Funcionalidad de descarga de archivos vulnerable a path traversal, permitiendo acceso no autorizado a archivos del sistema.",
+            "severidad": "Alta",
+            "impacto": "Acceso no autorizado a archivos sensibles del sistema; posible divulgación de credenciales o configuraciones",
+            "detailed_proof_of_concept": "Solicitud: GET /download?file=../../etc/passwd HTTP/1.1; Respuesta parcial: muestra listado de entradas de passwd (Content-Type: application/octet-stream) con contenido sensible del sistema."
+        },
+        {
+            "categoria": "Insecure Direct Object Reference (IDOR)",
+            "descripcion": "Falta de controles de acceso para recursos de usuario (página de perfil), permitiendo ver perfiles de otros usuarios modificando el identificador.",
+            "severidad": "Alta",
+            "impacto": "Acceso no autorizado a información personal de otros usuarios; potencial uso indebido de información obtenida",
+            "detailed_proof_of_concept": "Solicitud: GET /profile/2 HTTP/1.1; Respuesta parcial muestra información de usuario (Username: user1, Email: user1@example.com, Role: Regular User) para el perfil de otro usuario."
+        },
+        {
+            "categoria": "Stored Cross-Site Scripting (XSS)",
+            "descripcion": "Persistente XSS en la funcionalidad de comentarios, permitiendo inyección y ejecución de código JavaScript en navegadores de usuarios.",
+            "severidad": "Baja",
+            "impacto": "Ejecución de scripts arbitrarios en navegadores de usuarios; posible suplantación de sesión si se combina con otros fallos",
+            "detailed_proof_of_concept": "Payload: <script>alert(\"XSS\")</script> almacenado en el comentario. Respuesta de prueba muestra el payload ejecutándose en GET /document/1 y en el renderizado de la página."
+        }
+    ],
+    "recomendaciones": [
+        {
+            "prioridad": "Alta",
+            "accion": "Fortalecer controles de red y validación de URL para SSRF",
+            "descripcion": "Implementar validación estricta de URLs suministradas por usuarios, usar una allowlist de dominios permitidos y bloquear direcciones IP internas; aplicar segmentación de red y políticas de salida de tráfico."
+        },
+        {
+            "prioridad": "Alta",
+            "accion": "Proteger contra SQL Injection en el login",
+            "descripcion": "Usar consultas parametrizadas/prepared statements, validar y sanitizar entradas, aplicar principio de privilegios mínimos y considerar reglas de WAF para detectar inyecciones."
+        },
+        {
+            "prioridad": "Alta",
+            "accion": "Mitigar Local File Inclusion (LFI)",
+            "descripcion": "Validar y restringir rutas de archivos, usar listas blancas de archivos permitidos, normalizar y limpiar rutas, y ejecutar con permisos mínimos."
+        },
+        {
+            "prioridad": "Alta",
+            "accion": "Corregir IDOR y controles de acceso",
+            "descripcion": "Implemenar controles de acceso adecuados, usar referencias indirectas a objetos, aplicar RBAC/ABAC y registrar intentos de acceso a recursos sensibles."
+        },
+        {
+            "prioridad": "Media",
+            "accion": "Mitigar Stored XSS",
+            "descripcion": "Aplicar encoding de salida, políticas CSP, sanitizar entradas antes de almacenar y considerar renderizado seguro (p. ej., evitar interpretación de HTML no confiable)."
+        },
+        {
+            "prioridad": "Media",
+            "accion": "Reforzar ciclo de vida de desarrollo seguro",
+            "descripcion": "Incorporar pruebas de seguridad regulares, revisión de código, y controles de entrada y salida en todas las capas de la aplicación."
+        }
+    ],
+    "datos_tecnicos": {
+        "entorno": "Aplicación web en http://localhost:5000/",
+        "endpoints_pruebas": [
+            "/api/fetch",
+            "/login",
+            "/download",
+            "/profile/{id}",
+            "/comment",
+            "/document/1"
+        ],
+        "credenciales_utilizadas": {
+            "admin": {
+                "usuario": "admin",
+                "contrasena": "admin123"
+            },
+            "user1": {
+                "usuario": "user1",
+                "contrasena": "user123"
+            }
+        },
+        "observaciones_abiertas": [
+            "SSRF, SQLi y LFI identificados como críticos/altos con impacto significativo.",
+            "IDOR y XSS presentes con potencial de escalada dependiendo del contexto de uso."
+        ]
+    },
+    "conclusiones": "La evaluación identifica varias vulnerabilidades críticas que requieren atención inmediata. SSRF se destaca como riesgo principal para el perímetro interno, seguido de SQL Injection y LFI que podrían comprometer la integridad y confidencialidad de datos. Se recomienda priorizar la remediación y fortalecer el proceso de desarrollo con prácticas de seguridad a lo largo del SDLC.",
+    "informacion_adicional": {
+        "nota": "Este informe utiliza ejemplos de tráfico de prueba y respuestas JSON/HTML para ilustrar los vectores de ataque. No se deben exponer estos detalles en entornos de producción sin las debidas mitigaciones.",
+        "recomendaciones_adicionales": [
+            "Implementar monitoreo de anomalías de red para detectar SSRF en tiempo real.",
+            "Realizar pruebas de penetración continuas y ejercicios de red team para validar controles de seguridad."
+        ]
+    }
+}
