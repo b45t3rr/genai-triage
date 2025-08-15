@@ -27,6 +27,7 @@ class RecommendationType(str, Enum):
 
 class ImpactLevel(str, Enum):
     """Niveles de impacto."""
+    CRITICAL = "crítico"
     HIGH = "alto"
     MEDIUM = "medio"
     LOW = "bajo"

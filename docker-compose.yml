@@ -17,22 +17,49 @@ services:
     networks:
       - pdf_processor_network
 
-  # Opcional: MongoDB Express para administración web
-  mongo-express:
-    image: mongo-express:1.0.0
-    container_name: pdf_processor_mongo_express
+  # Aplicación Triage-5
+  triage-5:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: triage_5_app
     restart: unless-stopped
-    ports:
-      - "8081:8081"
     environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USERNAME:-admin}
-      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD:-password123}
-      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password123}@mongodb:27017/
-      ME_CONFIG_BASICAUTH: false
+      # Variables de entorno para LLM providers
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4}
+      - OPENAI_TEMPERATURE=${OPENAI_TEMPERATURE:-0.1}
+      - XAI_API_KEY=${XAI_API_KEY}
+      - XAI_MODEL=${XAI_MODEL:-grok-beta}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-pro}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-chat}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-3-sonnet-20240229}
+      - DEFAULT_MODEL_PROVIDER=${DEFAULT_MODEL_PROVIDER:-openai}
+      # Variables de MongoDB
+      - MONGODB_URI=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password123}@mongodb:27017/
+      - DATABASE_NAME=${DATABASE_NAME:-vulnerability_validation}
+      - COLLECTION_NAME=${COLLECTION_NAME:-assessments}
+      # Variables de aplicación
+      - APP_NAME=${APP_NAME:-PDF Report Analyzer}
+      - APP_VERSION=${APP_VERSION:-1.0.0}
+      - DEBUG=${DEBUG:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-50}
+    volumes:
+      # Montar directorio para archivos PDF
+      - ./uploads:/app/uploads
+      - ./outputs:/app/outputs
     depends_on:
       - mongodb
     networks:
       - pdf_processor_network
+    # Comando por defecto para mantener el contenedor corriendo
+    command: tail -f /dev/null
+
+
 
 volumes:
   mongodb_data:

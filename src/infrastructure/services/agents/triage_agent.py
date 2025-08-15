@@ -140,12 +140,15 @@ Comienza tu análisis de triage ahora."""
             if not hallazgos:
                 raise ReportAnalysisError("No se encontraron vulnerabilidades en el reporte. Formatos soportados: 'hallazgos_principales', 'vulnerabilidades', 'findings'")
             
-            print(f"📊 Analizando {len(hallazgos)} vulnerabilidades...")
+            # Enriquecer hallazgos con evidencia estática y dinámica
+            hallazgos_enriquecidos = self._enrich_vulnerabilities_with_evidence(security_report, hallazgos)
+            
+            print(f"📊 Analizando {len(hallazgos_enriquecidos)} vulnerabilidades...")
             
             # Procesar cada vulnerabilidad
             triaged_vulnerabilities = []
-            for i, hallazgo in enumerate(hallazgos):
-                print(f"🎯 Procesando vulnerabilidad {i+1}/{len(hallazgos)}: {hallazgo.get('nombre', hallazgo.get('categoria', 'Sin nombre'))}")
+            for i, hallazgo in enumerate(hallazgos_enriquecidos):
+                print(f"🎯 Procesando vulnerabilidad {i+1}/{len(hallazgos_enriquecidos)}: {hallazgo.get('nombre', hallazgo.get('categoria', 'Sin nombre'))}")
                 
                 triaged_vuln = self._triage_single_vulnerability(hallazgo, i+1)
                 triaged_vulnerabilities.append(triaged_vuln)
@@ -162,6 +165,101 @@ Comienza tu análisis de triage ahora."""
         except Exception as e:
             print(f"❌ Error en análisis de triage: {str(e)}")
             raise ReportAnalysisError(f"Error en análisis de triage: {str(e)}")
+    
+    def _enrich_vulnerabilities_with_evidence(self, security_report: Dict[str, Any], hallazgos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Enriquece las vulnerabilidades con evidencia estática y dinámica."""
+        try:
+            # Obtener vulnerabilidades de análisis estático y dinámico
+            analisis_estatico = security_report.get('analisis_estatico', {})
+            analisis_dinamico = security_report.get('analisis_dinamico', {})
+            
+            vulns_estaticas = analisis_estatico.get('vulnerabilidades', [])
+            vulns_dinamicas = analisis_dinamico.get('vulnerabilidades', [])
+            
+            hallazgos_enriquecidos = []
+            
+            for hallazgo in hallazgos:
+                hallazgo_enriquecido = hallazgo.copy()
+                
+                # Buscar evidencia estática correspondiente
+                evidencia_estatica = self._find_matching_static_evidence(hallazgo, vulns_estaticas)
+                if evidencia_estatica:
+                    hallazgo_enriquecido['evidencia_estatica'] = evidencia_estatica
+                
+                # Buscar evidencia dinámica correspondiente
+                evidencia_dinamica = self._find_matching_dynamic_evidence(hallazgo, vulns_dinamicas)
+                if evidencia_dinamica:
+                    # Agregar información específica del análisis dinámico
+                    if 'payload_usado' in evidencia_dinamica:
+                        hallazgo_enriquecido['payload_usado'] = evidencia_dinamica['payload_usado']
+                    if 'respuesta_servidor' in evidencia_dinamica:
+                        hallazgo_enriquecido['respuesta_servidor'] = evidencia_dinamica['respuesta_servidor']
+                    if 'evidencia' in evidencia_dinamica:
+                        # Si ya hay evidencia dinámica en detailed_proof_of_concept, mantenerla
+                        if not hallazgo_enriquecido.get('detailed_proof_of_concept'):
+                            hallazgo_enriquecido['detailed_proof_of_concept'] = evidencia_dinamica['evidencia']
+                
+                hallazgos_enriquecidos.append(hallazgo_enriquecido)
+            
+            return hallazgos_enriquecidos
+            
+        except Exception as e:
+            print(f"⚠️ Error enriqueciendo vulnerabilidades: {str(e)}")
+            # En caso de error, devolver hallazgos originales
+            return hallazgos
+    
+    def _find_matching_static_evidence(self, hallazgo: Dict[str, Any], vulns_estaticas: List[Dict[str, Any]]) -> str:
+        """Busca evidencia estática que coincida con el hallazgo."""
+        hallazgo_nombre = hallazgo.get('nombre', '').lower()
+        hallazgo_categoria = hallazgo.get('categoria', '').lower()
+        
+        for vuln_estatica in vulns_estaticas:
+            vuln_nombre = vuln_estatica.get('nombre', '').lower()
+            
+            # Buscar coincidencias por nombre o categoría
+            if ('ssrf' in hallazgo_nombre and 'ssrf' in vuln_nombre) or \
+               ('sql' in hallazgo_nombre and 'sql' in vuln_nombre) or \
+               ('xss' in hallazgo_nombre and 'xss' in vuln_nombre) or \
+               ('idor' in hallazgo_nombre and ('idor' in vuln_nombre or 'access control' in vuln_nombre)) or \
+               ('path traversal' in hallazgo_nombre and 'path traversal' in vuln_nombre) or \
+               ('file inclusion' in hallazgo_nombre and 'file inclusion' in vuln_nombre):
+                
+                # Extraer evidencia del campo detalles si es JSON
+                detalles = vuln_estatica.get('detalles', '')
+                if isinstance(detalles, str) and detalles.startswith('{'):
+                    try:
+                        import json
+                        detalles_json = json.loads(detalles)
+                        return detalles_json.get('evidencia', '')
+                    except:
+                        pass
+                
+                # Si no es JSON, usar el campo evidencia directamente
+                return vuln_estatica.get('evidencia', '')
+        
+        return ''
+    
+    def _find_matching_dynamic_evidence(self, hallazgo: Dict[str, Any], vulns_dinamicas: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Busca evidencia dinámica que coincida con el hallazgo."""
+        hallazgo_nombre = hallazgo.get('nombre', '').lower()
+        
+        for vuln_dinamica in vulns_dinamicas:
+            vuln_nombre = vuln_dinamica.get('nombre', '').lower()
+            
+            # Buscar coincidencias por nombre
+            if ('ssrf' in hallazgo_nombre and 'ssrf' in vuln_nombre) or \
+               ('sql' in hallazgo_nombre and 'sql' in vuln_nombre) or \
+               ('xss' in hallazgo_nombre and 'xss' in vuln_nombre) or \
+               ('idor' in hallazgo_nombre and 'idor' in vuln_nombre) or \
+               ('path traversal' in hallazgo_nombre and ('path traversal' in vuln_nombre or 'file inclusion' in vuln_nombre)):
+                
+                return {
+                    'evidencia': vuln_dinamica.get('evidencia', ''),
+                    'payload_usado': vuln_dinamica.get('payload_usado', ''),
+                    'respuesta_servidor': vuln_dinamica.get('respuesta_servidor', '')
+                }
+        
+        return {}
     
     def _triage_single_vulnerability(self, hallazgo: Dict[str, Any], vuln_number: int) -> TriagedVulnerability:
         """Realiza triage de una vulnerabilidad individual."""
@@ -192,12 +290,26 @@ Comienza tu análisis de triage ahora."""
         impacto = hallazgo.get('impacto', 'No especificado')
         
         # Evidencia puede estar en diferentes campos
-        evidencia = (
+        evidencia_dinamica = (
             hallazgo.get('detailed_proof_of_concept') or 
             hallazgo.get('evidencia') or 
             hallazgo.get('detalles') or 
-            'No se proporcionó evidencia detallada'
+            ''
         )
+        
+        # Buscar evidencia estática si está disponible
+        evidencia_estatica = ''
+        if 'evidencia_estatica' in hallazgo:
+            evidencia_estatica = hallazgo.get('evidencia_estatica', '')
+        elif 'detalles' in hallazgo and isinstance(hallazgo['detalles'], str):
+            # Si detalles contiene JSON con evidencia estática
+            try:
+                import json
+                detalles_json = json.loads(hallazgo['detalles'])
+                if 'evidencia' in detalles_json:
+                    evidencia_estatica = detalles_json['evidencia']
+            except:
+                pass
         
         # Información adicional para análisis dinámico
         payload_usado = hallazgo.get('payload_usado', '')
@@ -213,8 +325,19 @@ Comienza tu análisis de triage ahora."""
 - Impacto Reportado: {impacto}
 - Estado: {estado}
 
-**EVIDENCIA DISPONIBLE:**
-{evidencia}"""
+**EVIDENCIA DISPONIBLE:**"""
+        
+        # Agregar evidencia dinámica si está disponible
+        if evidencia_dinamica:
+            query += f"\n\n**EVIDENCIA DINÁMICA (Pruebas de Penetración):**\n{evidencia_dinamica}"
+        
+        # Agregar evidencia estática si está disponible
+        if evidencia_estatica:
+            query += f"\n\n**EVIDENCIA ESTÁTICA (Análisis de Código):**\n{evidencia_estatica}"
+        
+        # Si no hay evidencia específica, usar mensaje genérico
+        if not evidencia_dinamica and not evidencia_estatica:
+            query += "\nNo se proporcionó evidencia detallada"
         
         # Agregar información específica de análisis dinámico si está disponible
         if payload_usado:
@@ -225,7 +348,7 @@ Comienza tu análisis de triage ahora."""
         
         query += """\n\n**INSTRUCCIONES:**
 Realiza un análisis completo de triage para esta vulnerabilidad. Evalúa:
-1. La calidad y solidez de la evidencia proporcionada
+1. La calidad y solidez de la evidencia proporcionada (tanto estática como dinámica)
 2. El impacto real basado en la evidencia
 3. La facilidad de explotación
 4. El contexto y las condiciones necesarias para la explotación

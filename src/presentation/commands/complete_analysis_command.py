@@ -182,46 +182,119 @@ class CompleteAnalysisCommand(BaseCommand):
         return "\n".join(textwrap.wrap(text, width=width))
     
     def _generate_analysis_explanation(self, vuln: Dict[str, Any], evidencias: list) -> str:
-        """Generate explanation of how the vulnerability was confirmed."""
-        analysis_types = []
+        """Generate detailed explanation of how the vulnerability was confirmed."""
+        explanation_parts = []
         
-        # Check for dynamic evidence
-        has_dynamic = any(ev.get('tipo_evidencia') in ['respuesta_http', 'archivo'] for ev in evidencias)
-        if has_dynamic:
-            analysis_types.append("análisis dinámico")
+        # Analyze dynamic evidence
+        dynamic_evidence = [ev for ev in evidencias if ev.get('tipo_evidencia') in ['respuesta_http', 'archivo']]
+        if dynamic_evidence:
+            dynamic_details = []
+            for ev in dynamic_evidence:
+                if ev.get('tipo_evidencia') == 'respuesta_http':
+                    if ev.get('ubicacion'):
+                        dynamic_details.append(f"pruebas HTTP en {ev.get('ubicacion')}")
+                    else:
+                        dynamic_details.append("pruebas de respuesta HTTP")
+                elif ev.get('tipo_evidencia') == 'archivo':
+                    dynamic_details.append(f"análisis de archivos ({ev.get('ubicacion', 'ubicación no especificada')})")
+            
+            if dynamic_details:
+                explanation_parts.append(f"análisis dinámico mediante {', '.join(dynamic_details)}")
         
-        # Check for static evidence
-        has_static = any(ev.get('tipo_evidencia') in ['código', 'configuración'] for ev in evidencias)
-        if has_static:
-            analysis_types.append("análisis estático")
+        # Analyze static evidence
+        static_evidence = [ev for ev in evidencias if ev.get('tipo_evidencia') in ['código', 'configuración']]
+        if static_evidence:
+            static_details = []
+            for ev in static_evidence:
+                if ev.get('tipo_evidencia') == 'código':
+                    if ev.get('ubicacion'):
+                        static_details.append(f"revisión de código en {ev.get('ubicacion')}")
+                    else:
+                        static_details.append("análisis de código fuente")
+                elif ev.get('tipo_evidencia') == 'configuración':
+                    static_details.append(f"análisis de configuración ({ev.get('ubicacion', 'ubicación no especificada')})")
+            
+            if static_details:
+                explanation_parts.append(f"análisis estático mediante {', '.join(static_details)}")
         
-        if analysis_types:
-            return f"Vulnerabilidad confirmada por {' y '.join(analysis_types)}"
+        # Build final explanation
+        if explanation_parts:
+            base_text = f"Vulnerabilidad confirmada por {' y '.join(explanation_parts)}"
+            
+            # Add evidence count for context
+            total_evidence = len(evidencias)
+            if total_evidence > 1:
+                base_text += f". Se encontraron {total_evidence} evidencias que confirman la vulnerabilidad"
+            elif total_evidence == 1:
+                base_text += f". Se encontró 1 evidencia que confirma la vulnerabilidad"
+                
+            return base_text
         else:
             return "Vulnerabilidad confirmada por análisis de triage"
     
     def _format_evidence(self, evidencia: Dict[str, Any], index: int) -> str:
-        """Format evidence for display."""
+        """Format evidence for display with detailed technical information."""
         tipo = evidencia.get('tipo_evidencia', 'desconocido')
         descripcion = evidencia.get('descripcion', 'Sin descripción')
         contenido = evidencia.get('contenido', '')
         ubicacion = evidencia.get('ubicacion', '')
+        criticidad = evidencia.get('criticidad_evidencia', 'medio')
         
-        evidence_text = f"  {index}. {descripcion}"
+        # Start with basic description and criticality
+        evidence_text = f"  {index}. [{tipo.upper()}] {descripcion}"
+        if criticidad:
+            evidence_text += f" [Criticidad: {criticidad.upper()}]"
         
-        # Add technical details based on evidence type
+        # Add detailed technical information based on evidence type
         if tipo == 'respuesta_http' and contenido:
-            # Extract HTTP details
-            if 'endpoint:' in contenido.lower() or 'get ' in contenido.lower() or 'post ' in contenido.lower():
-                evidence_text += f" ({contenido})"
-            elif ubicacion:
-                evidence_text += f" (endpoint: {ubicacion})"
-        elif tipo == 'código' and ubicacion:
-            evidence_text += f" (archivo: {ubicacion})"
+            evidence_text += "\n     📡 Detalles HTTP:"
+            # Format HTTP content for better readability
+            if '\\n' in contenido:
+                # Replace escaped newlines with actual newlines for better formatting
+                formatted_content = contenido.replace('\\n', '\n')
+                # Limit content length but show key parts
+                if len(formatted_content) > 500:
+                    lines = formatted_content.split('\n')
+                    # Show first few lines and last few lines
+                    if len(lines) > 10:
+                        key_lines = lines[:5] + ['     [... contenido truncado ...]'] + lines[-3:]
+                        formatted_content = '\n'.join(key_lines)
+                evidence_text += f"\n     {formatted_content}"
+            else:
+                evidence_text += f"\n     {contenido}"
+            
+            if ubicacion:
+                evidence_text += f"\n     🎯 Endpoint: {ubicacion}"
+                
+        elif tipo == 'código' and contenido:
+            evidence_text += "\n     💻 Código/Payload:"
+            # Format code content
+            if len(contenido) > 300:
+                evidence_text += f"\n     {contenido[:300]}..."
+            else:
+                evidence_text += f"\n     {contenido}"
+            
+            if ubicacion:
+                evidence_text += f"\n     📁 Ubicación: {ubicacion}"
+                
         elif tipo == 'archivo' and ubicacion:
-            evidence_text += f" (ubicación: {ubicacion})"
-        elif contenido and len(contenido) < 200:
-            evidence_text += f" ({contenido})"
+            evidence_text += f"\n     📄 Archivo: {ubicacion}"
+            if contenido:
+                evidence_text += f"\n     📋 Contenido: {contenido[:200]}{'...' if len(contenido) > 200 else ''}"
+                
+        elif tipo == 'configuración':
+            if contenido:
+                evidence_text += f"\n     ⚙️ Configuración: {contenido}"
+            if ubicacion:
+                evidence_text += f"\n     📍 Ubicación: {ubicacion}"
+        
+        # Add location info if not already included
+        elif ubicacion and not any(x in evidence_text.lower() for x in ['endpoint:', 'ubicación:', 'archivo:']):
+            evidence_text += f"\n     📍 Ubicación: {ubicacion}"
+            
+        # Add content if not already included and it's short enough
+        elif contenido and len(contenido) < 150 and 'contenido:' not in evidence_text.lower():
+            evidence_text += f"\n     📋 Detalles: {contenido}"
         
         return evidence_text
     

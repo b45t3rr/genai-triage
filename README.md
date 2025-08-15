@@ -13,18 +13,18 @@
 
 ## 🚀 Características Principales
 
-### 🤖 **Análisis Inteligente Multi-Modelo**
-- **Soporte Multi-LLM**: OpenAI GPT, Anthropic Claude, Google Gemini, XAI Grok, DeepSeek
-- **Análisis de PDFs**: Extracción y procesamiento inteligente de reportes de seguridad
-- **Triage Automatizado**: Priorización y clasificación automática de vulnerabilidades
-- **Validación Cruzada**: Correlación entre reportes y código fuente real
+### 🤖 **Arquitectura Multi-Agente Inteligente**
+- **Agentes Especializados**: Sistema de agentes autónomos con capacidades cognitivas avanzadas
+- **Orquestación Inteligente**: Coordinación automática entre agentes especializados
+- **Análisis Colaborativo**: Síntesis de resultados mediante consenso inter-agente
+- **Adaptabilidad Continua**: Agentes que aprenden y se adaptan dinámicamente
 
-### 🔍 **Capacidades de Análisis**
-- **📄 Análisis de Reportes PDF**: Extracción estructurada de vulnerabilidades
-- **🔧 Análisis Estático**: Integración con Semgrep para análisis de código
-- **🌐 Análisis Dinámico**: Pruebas automatizadas contra aplicaciones web
-- **⚖️ Triage Inteligente**: Priorización basada en impacto y explotabilidad
-- **📊 Análisis Completo**: Combinación de todas las metodologías
+### 🔍 **Agentes Especializados**
+- **📄 Agente Extractor de PDFs**: Procesamiento inteligente de reportes de seguridad
+- **🔧 Agente de Análisis Estático**: Detección autónoma de patrones y vulnerabilidades
+- **🌐 Agente de Análisis Dinámico**: Validación automática mediante pruebas adaptativas
+- **⚖️ Agente de Triage**: Priorización cognitiva basada en correlación multi-dimensional
+- **📊 Orquestador Multi-Agente**: Coordinación y síntesis colaborativa de resultados
 
 ### 🏗️ **Arquitectura Limpia**
 - **Clean Architecture**: Separación clara de responsabilidades
@@ -32,10 +32,13 @@
 - **Dependency Injection**: Factory pattern para gestión de dependencias
 - **Domain-Driven Design**: Modelado rico del dominio de seguridad
 
+*Un reporte explicativo con mas información como ejemplos, resultados y analisis se encuentra [AQUI](https://github.com/b45t3rr/genai-triage/blob/main/docs/report.mdhttps://github.com/b45t3rr/genai-triage/blob/main/docs/report.md)*
+
 ## 📋 Tabla de Contenidos
 
 - [🛠️ Instalación](#️-instalación)
 - [⚙️ Configuración](#️-configuración)
+- [🚀 Inicio Rápido](#-inicio-rápido)
 - [🎯 Uso Rápido](#-uso-rápido)
 - [📖 Comandos Disponibles](#-comandos-disponibles)
 - [🏛️ Arquitectura](#️-arquitectura)
@@ -118,30 +121,97 @@ MONGO_DATABASE=vulnerability_validation
 MONGODB_URI=mongodb://admin:password123@localhost:27017/vulnerability_validation
 ```
 
+## 🚀 Inicio Rápido
+
+### 🐳 Con Docker (Recomendado)
+
+```bash
+# 1. Clonar el repositorio
+git clone <repository-url>
+cd triage-5
+
+# 2. Configurar variables de entorno
+cp .env.example .env
+# Editar .env con tu API key de OpenAI u otro proveedor
+
+# 3. Levantar servicios con Docker
+docker-compose up -d
+
+# 4. Verificar que los servicios estén corriendo
+docker-compose ps
+
+# 5. Instalar dependencias Python (si no usas el contenedor principal)
+pip install -r requirements.txt
+```
+
+### 🎯 Ejemplo de Análisis Completo
+
+```bash
+# Levantar la aplicación vulnerable de prueba
+cd testing-assets/vuln-app-main/
+docker-compose up -d
+cd ../..
+
+# Ejecutar análisis completo con orquestación multi-agente
+python app.py orchestrate-agents \
+  --pdf testing-assets/report.pdf \
+  --source testing-assets/vuln-app-main/ \
+  --url http://localhost:5000 \
+  --output analisis-completo.json \
+  --model openai \
+  --mongodb \
+  --verbose
+
+# Ver resultados
+cat analisis-completo.json | jq .
+
+# Acceder a Mongo Express para ver datos persistidos
+# http://localhost:8081 (admin/pass)
+```
+
+### 🔧 Comandos Útiles de Docker
+
+```bash
+# Ver logs de todos los servicios
+docker-compose logs -f
+
+# Ver logs de un servicio específico
+docker-compose logs -f mongodb
+
+# Reiniciar servicios
+docker-compose restart
+
+# Detener servicios
+docker-compose down
+
+# Limpiar volúmenes (⚠️ elimina datos)
+docker-compose down -v
+```
+
 ## 🎯 Uso Rápido
 
 ### Análisis Básico de PDF
 
 ```bash
-# Analizar un reporte PDF
-python app.py read --pdf reporte.pdf --output resultado.json
+# Activar agente extractor de PDFs
+python app.py activate-pdf-agent --pdf reporte.pdf --output resultado.json
 
-# Con modelo específico
-python app.py read --pdf reporte.pdf --model anthropic --temperature 0.2
+# Con configuración específica del agente
+python app.py activate-pdf-agent --pdf reporte.pdf --model anthropic --temperature 0.2
 ```
 
 ### Triage de Vulnerabilidades
 
 ```bash
-# Procesar reporte existente
-python app.py triage --report resultado.json --output triage.json
+# Coordinar agente de triage
+python app.py coordinate-triage-agent --report resultado.json --output triage.json
 ```
 
 ### Análisis Completo
 
 ```bash
-# Análisis integral: PDF + Código + Pruebas dinámicas
-python app.py complete-analysis \
+# Orquestación multi-agente integral
+python app.py orchestrate-agents \
   --pdf reporte.pdf \
   --source ./codigo-fuente \
   --url http://localhost:8080 \
@@ -150,11 +220,11 @@ python app.py complete-analysis \
 
 ## 📖 Comandos Disponibles
 
-### 📄 `read` - Análisis de PDF
-Extrae y analiza vulnerabilidades de reportes PDF.
+### 📄 `activate-pdf-agent` - Agente Extractor de PDFs
+Activa el agente especializado para procesamiento cognitivo de reportes PDF.
 
 ```bash
-python app.py read --pdf archivo.pdf [opciones]
+python app.py activate-pdf-agent --pdf archivo.pdf [opciones]
 ```
 
 **Opciones:**
@@ -164,32 +234,32 @@ python app.py read --pdf archivo.pdf [opciones]
 - `--verbose, -v`: Información detallada
 - `--mongodb`: Guardar en MongoDB
 
-### 🔧 `static-scan` - Análisis Estático
-Analiza código fuente usando Semgrep y correlaciona con reporte PDF.
+### 🔧 `activate-static-agent` - Agente de Análisis Estático
+Despliega el agente especializado para detección inteligente de patrones y vulnerabilidades.
 
 ```bash
-python app.py static-scan --pdf reporte.pdf --source ./codigo [opciones]
+python app.py activate-static-agent --pdf reporte.pdf --source ./codigo [opciones]
 ```
 
-### 🌐 `dynamic-scan` - Análisis Dinámico
-Realiza pruebas automatizadas contra aplicaciones web.
+### 🌐 `deploy-dynamic-agent` - Agente de Análisis Dinámico
+Despliega el agente especializado para validación autónoma mediante pruebas adaptativas.
 
 ```bash
-python app.py dynamic-scan --pdf reporte.pdf --url http://target.com [opciones]
+python app.py deploy-dynamic-agent --pdf reporte.pdf --url http://target.com [opciones]
 ```
 
-### ⚖️ `triage` - Triage Inteligente
-Prioriza y clasifica vulnerabilidades basado en impacto y explotabilidad.
+### ⚖️ `coordinate-triage-agent` - Agente de Triage
+Coordina el agente especializado para priorización cognitiva multi-dimensional.
 
 ```bash
-python app.py triage --report reporte.json [opciones]
+python app.py coordinate-triage-agent --report reporte.json [opciones]
 ```
 
-### 📊 `complete-analysis` - Análisis Integral
-Combina todas las metodologías en un análisis completo.
+### 📊 `orchestrate-agents` - Orquestación Multi-Agente
+Orquesta la colaboración entre todos los agentes especializados para análisis integral.
 
 ```bash
-python app.py complete-analysis --pdf reporte.pdf --source ./codigo --url http://target.com [opciones]
+python app.py orchestrate-agents --pdf reporte.pdf --source ./codigo --url http://target.com [opciones]
 ```
 
 ### 🧪 Comandos de Utilidad
@@ -237,52 +307,53 @@ triage-5/
         └── commands/
 ```
 
-### 🎯 Casos de Uso Principales
+### 🎯 Casos de Uso Multi-Agente Principales
 
-1. **📄 ReadPDFUseCase**: Extracción de vulnerabilidades de PDFs
-2. **⚖️ TriageVulnerabilitiesUseCase**: Priorización inteligente
-3. **📊 CompleteSecurityAnalysisUseCase**: Análisis integral
+1. **📄 ActivatePDFAgentUseCase**: Activación del agente extractor de PDFs
+2. **⚖️ CoordinateTriageAgentUseCase**: Coordinación del agente de triage
+3. **📊 OrchestrateAgentsUseCase**: Orquestación integral de agentes especializados
 
-### 🤖 Agentes Especializados
+### 🤖 Ecosistema de Agentes Especializados
 
-- **📄 PDFAnalyzerAgent**: Procesamiento de reportes PDF
-- **🔧 StaticAnalysisAgent**: Análisis de código estático
-- **🌐 DynamicAgent**: Pruebas dinámicas automatizadas
-- **⚖️ TriageAgent**: Clasificación y priorización
+- **📄 Agente Extractor de PDFs**: Procesamiento cognitivo de reportes con comprensión contextual
+- **🔧 Agente de Análisis Estático**: Detección inteligente de patrones con adaptación automática
+- **🌐 Agente de Análisis Dinámico**: Validación autónoma con generación dinámica de payloads
+- **⚖️ Agente de Triage**: Priorización multi-dimensional con consenso inteligente
+- **🗄️ Agente de Persistencia**: Gestión inteligente de datos con optimización automática
 
 ## 🧪 Ejemplos
 
-### 📄 Análisis de PDF con Diferentes Modelos
+### 📄 Activación del Agente Extractor de PDFs con Diferentes Modelos
 
 ```bash
 # Con OpenAI GPT-4
-python app.py read --pdf security-report.pdf --model openai:gpt-4
+python app.py activate-pdf-agent --pdf security-report.pdf --model openai:gpt-4
 
 # Con Anthropic Claude
-python app.py read --pdf security-report.pdf --model anthropic:claude-3-sonnet-20240229
+python app.py activate-pdf-agent --pdf security-report.pdf --model anthropic:claude-3-sonnet-20240229
 
 # Con Google Gemini
-python app.py read --pdf security-report.pdf --model gemini:gemini-pro
+python app.py activate-pdf-agent --pdf security-report.pdf --model gemini:gemini-pro
 ```
 
-### 🔍 Análisis Estático con Semgrep
+### 🔍 Despliegue del Agente de Análisis Estático
 
 ```bash
-# Analizar código Python
-python app.py static-scan --pdf report.pdf --source ./python-app/
+# Activar agente para código Python
+python app.py activate-static-agent --pdf report.pdf --source ./python-app/
 
-# Analizar aplicación web
-python app.py static-scan --pdf report.pdf --source ./web-app/ --verbose
+# Desplegar agente para aplicación web
+python app.py activate-static-agent --pdf report.pdf --source ./web-app/ --verbose
 ```
 
-### 🌐 Pruebas Dinámicas
+### 🌐 Despliegue del Agente de Análisis Dinámico
 
 ```bash
-# Probar aplicación local
-python app.py dynamic-scan --pdf report.pdf --url http://localhost:8080
+# Desplegar agente para aplicación local
+python app.py deploy-dynamic-agent --pdf report.pdf --url http://localhost:8080
 
-# Probar con configuración específica
-python app.py dynamic-scan \
+# Coordinar agente con configuración específica
+python app.py deploy-dynamic-agent \
   --pdf report.pdf \
   --url https://target.example.com \
   --model anthropic \
@@ -290,11 +361,11 @@ python app.py dynamic-scan \
   --verbose
 ```
 
-### 📊 Análisis Completo
+### 📊 Orquestación Multi-Agente Integral
 
 ```bash
-# Análisis integral de una aplicación
-python app.py complete-analysis \
+# Orquestación completa de agentes especializados
+python app.py orchestrate-agents \
   --pdf security-assessment.pdf \
   --source ./vulnerable-app/ \
   --url http://localhost:5000 \
@@ -346,35 +417,35 @@ docker-compose up --build
 
 ## 🎨 Características Avanzadas
 
-### 🏭 Factory Pattern Simplificado
+### 🏭 Factory Pattern para Agentes Especializados
 
 ```python
-from infrastructure.utils import get_simple_factory
+from infrastructure.utils import get_agent_factory
 
-# Obtener factory
-factory = get_simple_factory()
+# Obtener factory de agentes
+agent_factory = get_agent_factory()
 
-# Crear casos de uso
-pdf_use_case = factory.create_read_pdf_use_case(
+# Crear agentes especializados
+pdf_agent = agent_factory.create_pdf_agent(
     provider="openai",
     model_name="gpt-4",
     temperature=0.1
 )
 
-# Ejecutar análisis
-result = pdf_use_case.execute("report.pdf")
+# Activar agente
+result = pdf_agent.activate("report.pdf")
 ```
 
-### 🔄 Análisis Multi-Proveedor
+### 🔄 Orquestación Multi-Agente
 
 ```python
-# Usar diferentes modelos para diferentes tareas
-pdf_analyzer = factory.create_read_pdf_use_case(provider="openai")
-triage_analyzer = factory.create_triage_use_case(provider="anthropic")
+# Desplegar diferentes agentes con modelos especializados
+pdf_agent = agent_factory.create_pdf_agent(provider="openai")
+triage_agent = agent_factory.create_triage_agent(provider="anthropic")
 
-# Combinar resultados
-pdf_result = pdf_analyzer.execute("report.pdf")
-triage_result = triage_analyzer.execute(pdf_result.raw_data)
+# Coordinar agentes colaborativamente
+pdf_result = pdf_agent.activate("report.pdf")
+triage_result = triage_agent.coordinate(pdf_result.cognitive_data)
 ```
 
 ### 📊 Reportes Estructurados
@@ -399,8 +470,8 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# Ejecutar ejemplos
-python examples/simple_factory_usage.py
+# Ejecutar ejemplos de agentes
+python examples/multi_agent_orchestration.py
 ```
 
 ### 📝 Guías de Contribución
@@ -411,30 +482,22 @@ python examples/simple_factory_usage.py
 4. **📤 Push** a la rama
 5. **🔄 Crear** un Pull Request
 
-### 🏗️ Arquitectura de Contribución
+### 🏗️ Arquitectura Multi-Agente de Contribución
 
-- **Domain Layer**: Lógica de negocio pura
-- **Application Layer**: Casos de uso y orquestación
-- **Infrastructure Layer**: Adaptadores y servicios externos
-- **Presentation Layer**: Interfaces de usuario
+- **Agent Layer**: Agentes especializados con capacidades cognitivas
+- **Orchestration Layer**: Coordinación y síntesis inter-agente
+- **Cognitive Layer**: Procesamiento inteligente y adaptativo
+- **Communication Layer**: Protocolos de comunicación entre agentes
 
 ## 📄 Licencia
 
-**⚠️ IMPORTANTE**: Este proyecto es solo para fines educativos y de investigación en seguridad. No debe ser utilizado en entornos de producción sin las debidas precauciones de seguridad.
-
-## 🙏 Agradecimientos
-
-- 🤖 **LangChain**: Framework de IA
-- 🔍 **Semgrep**: Análisis estático
-- 🎨 **Rich**: Interfaz de terminal moderna
-- 🐳 **Docker**: Containerización
-- 🗄️ **MongoDB**: Base de datos
+**⚠️ IMPORTANTE**: Este sistema multi-agente es para fines educativos y de investigación en seguridad. Los agentes especializados requieren configuración adecuada y no deben ser desplegados en entornos de producción sin las debidas precauciones de seguridad.
 
 ---
 
 <div align="center">
 
-**🛡️ Desarrollado con ❤️ para la comunidad de seguridad**
+**🛡️ Desarrollado como parte de un desafio**
 
 *Recuerda: Con gran poder viene gran responsabilidad* 🕷️
 

@@ -125,6 +125,11 @@ def add_comment():
     document_id = request.form.get('document_id')
     content = request.form.get('content')
     
+    # Validar que document_id esté presente
+    if not document_id:
+        flash('Error: Falta el document_id requerido', 'error')
+        return redirect(url_for('main.index'))
+    
     # Stored XSS vulnerability - user input is not sanitized
     new_comment = Comment(
         content=content,

@@ -56,7 +56,11 @@ Debes extraer y organizar la información siguiendo exactamente este esquema JSO
         "entorno": "string",
         "endpoints_pruebas": ["string"],
         "credenciales_utilizadas": {
-            "nombre_usuario": {
+            "admin": {
+                "usuario": "string",
+                "contrasena": "string"
+            },
+            "user": {
                 "usuario": "string",
                 "contrasena": "string"
             }

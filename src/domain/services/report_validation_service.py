@@ -91,10 +91,17 @@ class ReportValidationService:
             errors.append("El autor del documento es obligatorio")
         
         # Fecha de creación
-        if not report.documento.fecha_creacion:
+        if not report.documento.fecha:
             errors.append("La fecha de creación es obligatoria")
-        elif report.documento.fecha_creacion > datetime.now():
-            errors.append("La fecha de creación no puede ser futura")
+        else:
+            try:
+                # Try to parse the date string and compare
+                fecha_dt = datetime.fromisoformat(report.documento.fecha.replace('Z', '+00:00'))
+                if fecha_dt > datetime.now():
+                    errors.append("La fecha de creación no puede ser futura")
+            except (ValueError, AttributeError):
+                # If parsing fails, just skip the future date validation
+                pass
         
         # Validar email del autor si parece ser un email
         if '@' in report.documento.autor and not self.EMAIL_PATTERN.match(report.documento.autor):
@@ -138,7 +145,7 @@ class ReportValidationService:
         
         return errors
     
-    def _validate_recommendations(self, recommendations: List[str]) -> List[str]:
+    def _validate_recommendations(self, recommendations) -> List[str]:
         """Valida las recomendaciones."""
         errors = []
         
@@ -147,10 +154,20 @@ class ReportValidationService:
             return errors
         
         for i, rec in enumerate(recommendations, 1):
-            if not rec or not rec.strip():
-                errors.append(f"Recomendación {i}: No puede estar vacía")
-            elif len(rec.strip()) < 10:
-                errors.append(f"Recomendación {i}: Debe tener al menos 10 caracteres")
+            # Handle both string and Recommendation object types
+            if hasattr(rec, 'descripcion'):
+                # It's a Recommendation object
+                desc = rec.descripcion
+                if not desc or not desc.strip():
+                    errors.append(f"Recomendación {i}: La descripción no puede estar vacía")
+                elif len(desc.strip()) < 10:
+                    errors.append(f"Recomendación {i}: La descripción debe tener al menos 10 caracteres")
+            else:
+                # It's a string
+                if not rec or not rec.strip():
+                    errors.append(f"Recomendación {i}: No puede estar vacía")
+                elif len(rec.strip()) < 10:
+                    errors.append(f"Recomendación {i}: Debe tener al menos 10 caracteres")
         
         return errors
     
@@ -168,9 +185,8 @@ class ReportValidationService:
                 elif not (self.URL_PATTERN.match(endpoint) or self.IP_PATTERN.match(endpoint.split(':')[0])):
                     errors.append(f"Endpoint {i}: '{endpoint}' no tiene un formato válido de URL o IP")
         
-        # Herramientas utilizadas
-        if not technical_data.herramientas_utilizadas:
-            errors.append("Debe especificar al menos una herramienta utilizada")
+        # Skip herramientas_utilizadas validation as it's not part of the TechnicalData model
+        # The model only has: entorno, endpoints_pruebas, credenciales_utilizadas, observaciones_abiertas
         
         return errors
     

@@ -7,6 +7,7 @@ from ...domain.interfaces import (
     SecurityAnalyzerInterface,
     TriageAnalyzerInterface
 )
+from ...domain.services import SecurityAnalysisService, ReportValidationService
 from ...application.use_cases import (
     ReadPDFUseCase,
     TriageVulnerabilitiesUseCase,
@@ -99,11 +100,14 @@ class SimpleDependencyFactory:
         pdf_reader = self.create_pdf_reader()
         llm = self.create_llm(provider, model_name, temperature)
         security_analyzer = self.create_security_analyzer(llm)
+        analysis_service = SecurityAnalysisService()
+        validation_service = ReportValidationService()
         
         return ReadPDFUseCase(
             pdf_reader=pdf_reader,
             security_analyzer=security_analyzer,
-            llm=llm
+            analysis_service=analysis_service,
+            validation_service=validation_service
         )
     
     def create_triage_use_case(

@@ -163,9 +163,11 @@ class TriageService:
     
     def determine_overall_risk_level(self, risk_score: float) -> ImpactLevel:
         """Determina el nivel de riesgo general."""
-        if risk_score >= 8.0:
+        if risk_score >= 9.0:
+            return ImpactLevel.CRITICAL
+        elif risk_score >= 7.0:
             return ImpactLevel.HIGH
-        elif risk_score >= 5.0:
+        elif risk_score >= 4.0:
             return ImpactLevel.MEDIUM
         else:
             return ImpactLevel.LOW

@@ -1,6 +1,7 @@
 """Factory para crear instancias de las dependencias."""
 
 from ...domain.interfaces import PDFReaderInterface, SecurityAnalyzerInterface, LLMInterface
+from ...domain.services import SecurityAnalysisService, ReportValidationService
 from ...application.use_cases import ReadPDFUseCase
 from ..adapters.external.tools.pdf_reader import PyPDF2Reader
 from ..services.agents import LangChainReportAnalyzer, StaticAnalysisAgent
@@ -64,7 +65,15 @@ class DependencyFactory:
             llm = self.create_llm(provider, model_name, temperature)
             report_analyzer = self.create_report_analyzer(llm)
         
-        return ReadPDFUseCase(pdf_reader, report_analyzer)
+        analysis_service = SecurityAnalysisService()
+        validation_service = ReportValidationService()
+        
+        return ReadPDFUseCase(
+            pdf_reader=pdf_reader,
+            security_analyzer=report_analyzer,
+            analysis_service=analysis_service,
+            validation_service=validation_service
+        )
 
 
 # Instancia global del factory

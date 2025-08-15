@@ -128,8 +128,14 @@ Comienza tu análisis ahora usando las herramientas disponibles.
         hallazgos = pdf_analysis.get('hallazgos_principales', [])
         total_vulns = len(hallazgos)
         
-        # Crear agente ReACT con herramientas
-        agent_executor = self._create_react_agent(source_path, semgrep_results)
+        # Ejecutar semgrep una sola vez antes del loop para optimizar rendimiento
+        print("🔍 Ejecutando escaneo completo de Semgrep una sola vez...")
+        semgrep_analyzer = SemgrepAnalyzerTool(source_path)
+        complete_semgrep_scan = semgrep_analyzer.run_security_scan()
+        print("✅ Escaneo de Semgrep completado")
+        
+        # Crear agente ReACT con herramientas optimizadas (sin ejecutar semgrep repetidamente)
+        agent_executor = self._create_react_agent(source_path, semgrep_results, complete_semgrep_scan)
         
         for i, hallazgo in enumerate(hallazgos):
             vuln_name = hallazgo.get('categoria', f'Vulnerabilidad {i+1}')
@@ -160,7 +166,7 @@ Comienza tu análisis ahora usando las herramientas disponibles.
         
         return validated_vulnerabilities
     
-    def _create_react_agent(self, source_path: str, semgrep_results: List[Dict]) -> AgentExecutor:
+    def _create_react_agent(self, source_path: str, semgrep_results: List[Dict], complete_semgrep_scan: str) -> AgentExecutor:
         """Crea un agente ReACT con herramientas para análisis de código."""
         from langchain_openai import ChatOpenAI
         
@@ -175,9 +181,9 @@ Comienza tu análisis ahora usando las herramientas disponibles.
                 func=file_reader.read_file_smart
             ),
             Tool(
-                name="run_security_scan",
-                description="Ejecuta un escaneo de seguridad completo usando Semgrep con reglas predefinidas",
-                func=lambda _: semgrep_analyzer.run_security_scan()
+                name="get_security_scan_results",
+                description="Obtiene los resultados del escaneo de seguridad completo ya ejecutado con Semgrep",
+                func=lambda _: complete_semgrep_scan
             ),
             Tool(
                 name="find_files_by_pattern",
@@ -186,7 +192,7 @@ Comienza tu análisis ahora usando las herramientas disponibles.
             ),
             Tool(
                 name="analyze_code_pattern",
-                description="Analiza patrones específicos de código usando Semgrep. Formato: 'patrón,lenguaje' (ej: 'eval(...),python')",
+                description="Analiza patrones específicos de código usando Semgrep. Formato: 'patrón,lenguaje' (ej: 'eval(...),python'). NOTA: Esta herramienta ejecuta semgrep, úsala solo para patrones muy específicos no cubiertos por el escaneo general.",
                 func=lambda pattern: semgrep_analyzer.analyze_code_pattern(pattern)
             )
         ]
@@ -220,7 +226,7 @@ PoC: {hallazgo.get('detailed_proof_of_concept', 'Sin PoC proporcionado')}
 
 CONTEXTO IMPORTANTE:
 - Esta vulnerabilidad fue reportada en un análisis de seguridad
-- Semgrep ya encontró patrones sospechosos en el código
+- Ya se ejecutó un escaneo completo de Semgrep con todos los patrones de seguridad
 - Tu trabajo es confirmar si la vulnerabilidad existe y es explotable
 
 USA LA METODOLOGÍA ReACT:
@@ -231,11 +237,13 @@ USA LA METODOLOGÍA ReACT:
 
 INSTRUCCIONES ESPECÍFICAS:
 - Entiende primero el tipo de vulnerabilidad y su impacto, y el PoC de la vulnerabilidad
-- Busca primero en los resultados de Semgrep patrones relacionados con esta vulnerabilidad
-- Examina los archivos identificados línea por línea
+- USA 'get_security_scan_results' para obtener los resultados completos del escaneo de Semgrep
+- Busca en los resultados de Semgrep patrones relacionados con esta vulnerabilidad específica
+- Examina los archivos identificados línea por línea usando 'read_source_file'
 - Busca patrones de código inseguro, validación faltante, o configuraciones débiles
 - Si encuentras código que podría ser problemático, márca como VULNERABLE
 - Solo marca NO_VULNERABLE si estás seguro de que la vulnerabilidad no existe
+- EVITA usar 'analyze_code_pattern' a menos que necesites buscar un patrón muy específico no cubierto por el escaneo general
 
 Comienza tu análisis ahora usando las herramientas disponibles.
 """

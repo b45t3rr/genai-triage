@@ -141,6 +141,10 @@ def read_pdf(
                 console.print("[yellow]Configure al menos una API key en el archivo .env[/yellow]")
             raise typer.Exit(1)
         
+        # Mostrar información del reporte y modelo
+        console.print(f"📄 Reporte: {pdf}")
+        console.print(f"🤖 Modelo: {model_name or 'por defecto'}")
+        
         if verbose:
             console.print(f"[blue]📄 Procesando archivo: {pdf}[/blue]")
             console.print(f"[blue]🤖 Modelo: {model_name or 'por defecto'}[/blue]")
@@ -550,7 +554,7 @@ def dynamic_scan(
             )
             
             # Importar y crear el agente dinámico
-            from ..infrastructure.agents.dynamic_agent import DynamicAnalysisAgent
+            from ..infrastructure.services.agents.dynamic_agent import DynamicAnalysisAgent
             dynamic_agent = DynamicAnalysisAgent(llm)
             
             spinner.update_message("Ejecutando análisis dinámico...")
@@ -591,8 +595,10 @@ def dynamic_scan(
             try:
                 with LoadingSpinner("Guardando en MongoDB...") as spinner:
                     client = MongoDBClient()
-                    doc_id = client.save_analysis_result(
-                        result, 
+                    client.connect()
+                    doc_id = client.save_report(
+                        pdf,
+                        json.dumps(result, ensure_ascii=False),
                         {
                             'tipo_analisis': 'dinamico',
                             'pdf_path': pdf,
@@ -601,6 +607,7 @@ def dynamic_scan(
                             'temperature': temperature
                         }
                     )
+                    client.disconnect()
                 console.print(f"[green]Resultado guardado en MongoDB con ID: {doc_id}[/green]")
             except Exception as e:
                 console.print(f"[yellow]Advertencia: No se pudo guardar en MongoDB: {str(e)}[/yellow]")

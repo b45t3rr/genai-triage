@@ -27,6 +27,11 @@ class ReadPDFCommand(BaseCommand):
         
         provider, model_name = self._parse_model_parameter(model)
         
+        # Display report and model info at the beginning
+        self.console.print(f"📄 Reporte: {pdf}", style="blue")
+        model_display = f"{provider}:{model_name}" if model_name else provider
+        self.console.print(f"🤖 Modelo: {model_display}", style="cyan")
+        
         if verbose:
             self._display_verbose_info({
                 "Archivo PDF": pdf,

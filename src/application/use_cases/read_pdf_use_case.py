@@ -48,7 +48,7 @@ class ReadPDFUseCase:
             pdf_document = self._pdf_reader.read_pdf(file_path)
             
             # Paso 2: Analizar el contenido de seguridad
-            security_report = self._security_analyzer.analyze_security_content(pdf_document.content)
+            security_report = self._security_analyzer.analyze_content(pdf_document.content)
             
             # Paso 3: Validar la calidad del reporte
             is_valid, validation_errors = self._validation_service.validate_security_report(security_report)
@@ -78,7 +78,7 @@ class ReadPDFUseCase:
                 "metadata": {
                     "analysis_date": datetime.now().isoformat(),
                     "file_path": file_path,
-                    "document_info": pdf_document.metadata.model_dump() if pdf_document.metadata else None
+                    "document_info": pdf_document.metadata if pdf_document.metadata else None
                 }
             }
             
