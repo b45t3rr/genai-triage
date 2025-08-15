@@ -224,6 +224,10 @@ Los agentes se comunican a través de un **protocolo de mensajería especializad
 - **Consenso Inteligente**: Los agentes llegan a consensos sobre severidad y prioridad
 - **Retroalimentación Continua**: Los agentes aprenden de las decisiones de otros agentes
 
+**El resultado final es un triage mejorado que considera la evidencia de múltiples agentes y el contexto del proyecto.**
+
+![Ejemplo de Triage](https://i.imgur.com/mFqtD8D.png)
+
 ## 🎯 Ejemplos de Triage de Vulnerabilidades
 
 ### Ejemplo 1: Validación con Análisis Estático - SQL Injection
