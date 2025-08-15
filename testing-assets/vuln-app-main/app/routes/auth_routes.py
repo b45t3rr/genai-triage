@@ -18,6 +18,14 @@ def login():
         username = request.form.get('username', '')
         password = request.form.get('password', '')
         
+        # Primero intentar login legítimo usando ORM
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password):
+            login_user(user)
+            flash(f'¡Bienvenido {user.username}!', 'success')
+            return redirect(url_for('main.index'))
+        
+        # Si el login normal falla, intentar con consulta SQL vulnerable
         try:
             # Conexión directa a la base de datos sin usar ORM
             conn = mysql.connector.connect(
@@ -31,8 +39,8 @@ def login():
             # Crear un cursor que devuelva diccionarios
             cursor = conn.cursor(dictionary=True)
             
-            # Inyección SQL en el campo de contraseña - vulnerable a bypass
-            query = f"SELECT * FROM user WHERE username = '{username}' AND password_hash = '{password}'"
+            # Inyección SQL vulnerable - permite bypass con payloads como: ' OR '1'='1' --
+            query = f"SELECT * FROM user WHERE username = '{username}' AND (password_hash = '{password}' OR '{password}' = 'bypass')"
             
             current_app.logger.error(f"[VULN] Query: {query}")
             
@@ -52,7 +60,7 @@ def login():
                 user.password_hash = user_data['password_hash']
                 
                 login_user(user)
-                flash(f'¡Bienvenido {user.username}!', 'success')
+                flash(f'¡Bienvenido {user.username}! (SQL Bypass)', 'success')
                 return redirect(url_for('main.index'))
                 
         except Exception as e:

@@ -6,6 +6,8 @@ pydantic
 pydantic-settings
 python-dotenv
 rich
+requests
+urllib3
 
 # LLM Provider dependencies
 langchain-openai

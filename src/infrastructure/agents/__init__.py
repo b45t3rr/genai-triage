@@ -2,6 +2,8 @@
 
 from .pdf_analyzer_agent import LangChainReportAnalyzer, PDFAnalysisTool, create_pdf_analysis_agent
 from .static_agent import StaticAnalysisAgent, FileReaderTool, create_static_analysis_agent
+from .triage_agent import TriageAgent
+from .dynamic_agent import DynamicAnalysisAgent
 
 __all__ = [
     'LangChainReportAnalyzer',
@@ -9,5 +11,7 @@ __all__ = [
     'create_pdf_analysis_agent',
     'StaticAnalysisAgent',
     'FileReaderTool',
-    'create_static_analysis_agent'
+    'create_static_analysis_agent',
+    'TriageAgent',
+    'DynamicAnalysisAgent'
 ]

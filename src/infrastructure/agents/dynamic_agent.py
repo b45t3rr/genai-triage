@@ -34,6 +34,7 @@ IMPORTANTE: Debes responder SIEMPRE con el siguiente formato JSON exacto:
 
 ```json
 {{
+  "id": "ID de la vulnerabilidad (ej: VULN-001)",
   "nombre": "Nombre de la vulnerabilidad",
   "estado": "vulnerable" | "no_vulnerable",
   "evidencia": "Descripción específica de la evidencia encontrada durante la explotación o razón por la cual no es vulnerable",
@@ -51,11 +52,12 @@ HERRAMIENTAS DISPONIBLES:
 - check_service_availability: Para verificar disponibilidad del servicio
 
 METODOLOGÍA DE EXPLOTACIÓN:
-1. Analiza el tipo de vulnerabilidad reportada y diseña tu estrategia de explotación en base a los detalles del reporte
-2. Usa las herramientas de red disponibles para replicar los ataques
-3. IMPORTANTE: Si curl_request devuelve Status Code 3, significa error de conexión - intenta diferentes enfoques
-4. Analiza cuidadosamente las respuestas para identificar indicadores de explotación exitosa
-5. Marca como "vulnerable" solo si obtienes evidencia clara de explotación
+1. Analiza el reporte PDF para obtener informacion util
+2. Analiza el tipo de vulnerabilidad reportada y diseña tu estrategia de explotación en base a los detalles del reporte
+3. Usa las herramientas de red disponibles para replicar los ataques
+4. IMPORTANTE: Si curl_request devuelve Status Code 3, significa error de conexión - intenta diferentes enfoques
+5. Analiza cuidadosamente las respuestas para identificar indicadores de explotación exitosa
+6. Marca como "vulnerable" solo si obtienes evidencia clara de explotación
 
 INTERPRETACIÓN DE RESPUESTAS:
 - Status Code 0: Éxito
@@ -148,7 +150,7 @@ Comienza tu análisis dinámico ahora usando las herramientas de red disponibles
             
             try:
                 # Usar el agente ReACT para validar la vulnerabilidad mediante explotación
-                validation_query = self._create_dynamic_validation_query(hallazgo, i + 1, target_url)
+                validation_query = self._create_dynamic_validation_query(hallazgo, i + 1, target_url, pdf_analysis)
                 print(f"    🤖 Ejecutando agente de explotación dinámica...")
                 
                 agent_response = agent_executor.invoke({"input": validation_query})
@@ -156,7 +158,7 @@ Comienza tu análisis dinámico ahora usando las herramientas de red disponibles
                 
                 print(f"    🔍 Resultado de parsing - Estado: '{validation_result['estado']}'")
                 status_emoji = "✅" if validation_result['estado'] == 'vulnerable' else "❌"
-                print(f"  {status_emoji} {vuln_name}: {validation_result['estado']} (severidad: {validation_result['severidad']})")
+                print(f"  {status_emoji} {vuln_name}: {validation_result['estado']}")
                 validated_vulnerabilities.append(validation_result)
                 
             except Exception as e:
@@ -258,17 +260,31 @@ Comienza tu análisis dinámico ahora usando las herramientas de red disponibles
     
 
     
-    def _create_dynamic_validation_query(self, hallazgo: Dict, vuln_number: int, target_url: str) -> str:
+    def _create_dynamic_validation_query(self, hallazgo: Dict, vuln_number: int, target_url: str, pdf_analysis: Dict = None) -> str:
         """Crea la consulta para el agente ReACT dinámico."""
+        
+        # Extraer credenciales del análisis PDF si están disponibles
+        credenciales_info = ""
+        if pdf_analysis and 'datos_tecnicos' in pdf_analysis:
+            datos_tecnicos = pdf_analysis['datos_tecnicos']
+            if 'credenciales_utilizadas' in datos_tecnicos and datos_tecnicos['credenciales_utilizadas']:
+                credenciales_info = "\n\n🔐 CREDENCIALES DISPONIBLES DEL REPORTE:\n"
+                for nombre_cred, cred_data in datos_tecnicos['credenciales_utilizadas'].items():
+                    if isinstance(cred_data, dict) and 'usuario' in cred_data and 'contrasena' in cred_data:
+                        credenciales_info += f"- {nombre_cred}: {cred_data['usuario']}:{cred_data['contrasena']}\n"
+                credenciales_info += "\nPuedes usar estas credenciales para autenticarte si la vulnerabilidad requiere acceso autenticado.\n"
+        
         return f"""
 VALIDA MEDIANTE EXPLOTACIÓN LA SIGUIENTE VULNERABILIDAD #{vuln_number}:
 
 🎯 OBJETIVO: {target_url}
+ID: {hallazgo.get('id', f'VULN-{vuln_number:03d}')}
+Nombre: {hallazgo.get('nombre', 'Vulnerabilidad sin nombre')}
 Categoría: {hallazgo.get('categoria', 'Desconocida')}
 Descripción: {hallazgo.get('descripcion', 'Sin descripción')}
 Severidad reportada: {hallazgo.get('severidad', 'Desconocida')}
 Impacto: {hallazgo.get('impacto', 'Sin impacto definido')}
-PoC: {hallazgo.get('detailed_proof_of_concept', 'Sin PoC proporcionado')}
+PoC: {hallazgo.get('detailed_proof_of_concept', 'Sin PoC proporcionado')}{credenciales_info}
 
 CONTEXTO IMPORTANTE:
 - Esta vulnerabilidad fue reportada en un análisis de seguridad
@@ -284,9 +300,7 @@ USA LA METODOLOGÍA ReACT PARA EXPLOTACIÓN DINÁMICA:
 4. CONCLUSION: Determina VULNERABLE o NO_VULNERABLE basado en la explotación exitosa
 
 INSTRUCCIONES ESPECÍFICAS:
-- Usa los payloads exactos mencionados en el PoC si están disponibles
-- Para curl_request, usa sintaxis nativa de curl (ej: '-X POST -d "payload" /endpoint' o simplemente '/endpoint')
-- Si curl_request devuelve Status Code 3, significa que el endpoint no existe o hay error de conexión
+- Usa el mismo payload que se usó en el PoC, la idea es que repliques la explotación
 - Si obtienes Status Code 0 y contenido en STDOUT, analiza el contenido para buscar indicadores de explotación
 - Analiza las respuestas del servidor para buscar indicadores de explotación exitosa
 - Si la explotación es exitosa, marca como VULNERABLE
@@ -310,10 +324,11 @@ Comienza tu análisis de explotación ahora usando las herramientas de red dispo
         
         # Valores por defecto
         estado = "no vulnerable"
-        severidad = hallazgo.get('severidad', 'media')
         evidencia = "Sin evidencia de explotación exitosa encontrada"
         payload_usado = "No se pudo determinar"
         respuesta_servidor = "No se obtuvo respuesta relevante"
+        nombre = hallazgo.get('categoria', 'Vulnerabilidad desconocida')  # Valor por defecto
+        vuln_id = hallazgo.get('id', 'VULN-UNKNOWN')  # ID por defecto
         
         # Analizar si todas las peticiones curl fallaron con Status Code 3
         all_curl_failed = True
@@ -378,10 +393,13 @@ Comienza tu análisis de explotación ahora usando las herramientas de red dispo
                     estado = 'vulnerable'
                 print(f"    🔍 Estado final después del procesamiento: '{estado}'")
                     
-                severidad = result.get('severidad', severidad)
                 evidencia = result.get('evidencia', evidencia)
                 payload_usado = result.get('payload_usado', payload_usado)
                 respuesta_servidor = result.get('respuesta_servidor', respuesta_servidor)
+                # Extraer el nombre real de la vulnerabilidad del JSON de respuesta
+                nombre = result.get('nombre', nombre)
+                # Extraer el ID de la vulnerabilidad del JSON de respuesta
+                vuln_id = result.get('id', vuln_id)
             else:
                 print(f"    🔍 No se encontró JSON válido, usando lógica de fallback")
                 # Si no hay JSON, analizar los pasos intermedios
@@ -412,9 +430,10 @@ Comienza tu análisis de explotación ahora usando las herramientas de red dispo
         
         print(f"    🔍 Estado final antes del return: '{estado}'")
         return {
-            "nombre": hallazgo.get('categoria', 'Vulnerabilidad desconocida'),
+            "id": vuln_id,
+            "nombre": nombre,
             "estado": estado,
-            "severidad": severidad,
+            "severidad": hallazgo.get('severidad', 'media'),
             "detalles": output,
             "evidencia": evidencia,
             "payload_usado": payload_usado,

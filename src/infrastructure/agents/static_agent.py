@@ -33,7 +33,8 @@ IMPORTANTE: Debes responder SIEMPRE con el siguiente formato JSON exacto:
 
 ```json
 {{
-  "nombre": "nombre de la vulnerabildiad",
+  "id": "ID de la vulnerabilidad (ej: VULN-001)",
+  "nombre": "nombre de la vulnerabilidad",
   "estado": "vulnerable" | "no_vulnerable",
   "evidencia": "Descripción específica de la evidencia encontrada o razón por la cual no es vulnerable"
 }}
@@ -78,7 +79,7 @@ Comienza tu análisis ahora usando las herramientas disponibles.
     
     def _analyze_pdf_report(self, pdf_path: str) -> Dict[str, Any]:
         """Analiza el reporte PDF usando el agente existente."""
-        from ...infrastructure.pdf_reader import PyPDF2Reader
+        from ..tools.pdf_reader import PyPDF2Reader
         
         pdf_reader = PyPDF2Reader()
         pdf_document = pdf_reader.read_pdf(pdf_path)
@@ -208,6 +209,8 @@ Comienza tu análisis ahora usando las herramientas disponibles.
         return f"""
 VALIDA LA SIGUIENTE VULNERABILIDAD #{vuln_number}:
 
+ID: {hallazgo.get('id', f'VULN-{vuln_number:03d}')}
+Nombre: {hallazgo.get('nombre', 'Vulnerabilidad sin nombre')}
 Categoría: {hallazgo.get('categoria', 'Desconocida')}
 Descripción: {hallazgo.get('descripcion', 'Sin descripción')}
 Severidad reportada: {hallazgo.get('severidad', 'Desconocida')}
@@ -244,6 +247,8 @@ Comienza tu análisis ahora usando las herramientas disponibles.
         estado = "no vulnerable"
         severidad = hallazgo.get('severidad', 'media')
         evidencia = "Sin evidencia específica encontrada"
+        nombre = hallazgo.get('categoria', 'Vulnerabilidad desconocida')  # Valor por defecto
+        vuln_id = hallazgo.get('id', 'VULN-UNKNOWN')  # ID por defecto
         
         try:
             # Buscar el JSON en la respuesta
@@ -260,6 +265,10 @@ Comienza tu análisis ahora usando las herramientas disponibles.
                     
                 severidad = result.get('severidad', severidad)
                 evidencia = result.get('evidencia', evidencia)
+                # Extraer el nombre real de la vulnerabilidad del JSON de respuesta
+                nombre = result.get('nombre', nombre)
+                # Extraer el ID de la vulnerabilidad del JSON de respuesta
+                vuln_id = result.get('id', vuln_id)
             else:
                 # Fallback: buscar patrones simples si no hay JSON
                 output_lower = output.lower()
@@ -275,7 +284,8 @@ Comienza tu análisis ahora usando las herramientas disponibles.
             evidencia = f"Error parsing JSON response: {str(e)}. Raw output: {output[:200]}..."
         
         return {
-            "nombre": hallazgo.get('categoria', 'Vulnerabilidad desconocida'),
+            "id": vuln_id,
+            "nombre": nombre,
             "estado": estado,
             "severidad": severidad,
             "detalles": output,

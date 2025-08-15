@@ -36,6 +36,8 @@ Debes extraer y organizar la información siguiendo exactamente este esquema JSO
     "resumen_ejecutivo": "string",
     "hallazgos_principales": [
         {
+            "id": "string (ID único de la vulnerabilidad, ej: VULN-001, VULN-002, etc.)",
+            "nombre": "string",
             "categoria": "string",
             "descripcion": "string",
             "severidad": "string",
@@ -73,7 +75,11 @@ Instrucciones:
 2. Extrae la información relevante y organízala según el esquema
 3. Si algún campo no está disponible, usa valores por defecto apropiados ("Desconocido", "No especificado", etc.)
 4. Mantén la información técnica precisa y detallada
-5. Clasifica las vulnerabilidades por severidad (Crítico, Alto, Medio, Bajo)
+5. Para cada vulnerabilidad:
+   - "id": ID único y secuencial para la vulnerabilidad (ej: "VULN-001", "VULN-002", "VULN-003", etc.)
+   - "nombre": Nombre específico de la vulnerabilidad (ej: "SQL Injection", "Cross-Site Scripting", "Server-Side Request Forgery")
+   - "categoria": Tipo o categoría de la vulnerabilidad (ej: "Injection", "Broken Authentication", "Security Misconfiguration")
+   - "severidad": Nivel de severidad (Crítico, Alto, Medio, Bajo)
 6. Prioriza las recomendaciones (Alta, Media, Baja)
 7. Responde ÚNICAMENTE con el JSON válido, sin texto adicional
 
