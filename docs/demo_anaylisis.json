@@ -1,0 +1,717 @@
+{
+  "analisis_pdf": {
+    "documento": {
+      "titulo": "Vulnerability Assessment Report",
+      "fecha": "Desconocido",
+      "autor": "Desconocido",
+      "tipo_documento": "Informe de evaluación de vulnerabilidades",
+      "numero_paginas": 0
+    },
+    "resumen_ejecutivo": "El análisis identificó múltiples vulnerabilidades críticas y altas en la aplicación web expuesta en http://localhost:5000/, incluyendo una SSRF crítica, SQL Injection y Local File Inclusion clasificadas como altas, una vulnerabilidad IDOR de severidad media y un Stored XSS de severidad baja. El riesgo general es Alto y se requiere remediación inmediata para evitar compromiso del sistema y filtración de datos.",
+    "hallazgos_principales": [
+      {
+        "nombre": "Server-Side Request Forgery (SSRF)",
+        "categoria": "SSRF",
+        "descripcion": "La API /api/fetch permite que un atacante induce solicitudes a recursos internos al suministrar una URL manipulada, permitindo acceso a servicios internos.",
+        "severidad": "Crítico",
+        "impacto": "Acceso a recursos internos de la red, posibilidad de eludir controles de seguridad de red, divulgación de información de sistemas internos y posible pivot hacia ataques adicionales.",
+        "detailed_proof_of_concept": "POC: GET /api/fetch?api_key=insecure_api_key_123&url=http://internal-server/secret.txt; Respuesta incluye INTERNAL_SECRET_FLAG{ssrf_test_successful_internal_access} y detalle de servidor interno (Hostname: internal-server, Servicio: nginx).",
+        "evidencias_adicionales": []
+      },
+      {
+        "nombre": "SQL Injection",
+        "categoria": "Injection",
+        "descripcion": "El formulario de inicio de sesión es susceptible a inyección SQL, lo que podría permitir eludir la autenticación o extraer información de la base de datos.",
+        "severidad": "Alto",
+        "impacto": "Potencial bypass de autenticación, compromiso completo de la base de datos y posible exfiltración de datos.",
+        "detailed_proof_of_concept": "POC: Envío de payload 'admin' or '1'='1' -- en POST /login; Respuesta redirige a '/' y se establece sesión sin validación adecuada, indicando bypass de autenticación.",
+        "evidencias_adicionales": []
+      },
+      {
+        "nombre": "Local File Inclusion (Path Traversal)",
+        "categoria": "Path Traversal / LFI",
+        "descripcion": "La funcionalidad de descarga de archivos es vulnerable a path traversal, permitiendo acceso no autorizado a archivos del sistema.",
+        "severidad": "Alto",
+        "impacto": "Acceso no autorizado a archivos sensibles del sistema, posible exposición de credenciales o archivos de configuración y posible escalada a RCE.",
+        "detailed_proof_of_concept": "POC: GET /download?file=../../etc/passwd; Respuesta incluye contenidos de /etc/passwd (ej. root:x:0:0:root:/root:/bin/bash).",
+        "evidencias_adicionales": []
+      },
+      {
+        "nombre": "Insecure Direct Object Reference (IDOR)",
+        "categoria": "Control de Acceso / IDOR",
+        "descripcion": "La aplicación no aplica controles de acceso adecuados en las páginas de perfil de usuario, permitiendo ver perfiles de otros usuarios modificando el parámetro ID.",
+        "severidad": "Medio",
+        "impacto": "Acceso no autorizado a información personal de otros usuarios, posible recopilación de datos para ataques posteriores y violación de privacidad.",
+        "detailed_proof_of_concept": "POC: GET /profile/2 devuelve información de usuario 1 (usuario, correo, rol), demostrando falta de verificación de permisos.",
+        "evidencias_adicionales": []
+      },
+      {
+        "nombre": "Stored Cross-Site Scripting (XSS)",
+        "categoria": "Stored XSS",
+        "descripcion": "La funcionalidad de comentarios es vulnerable a XSS almacenado, permitiendo inyección persistente de código JavaScript.",
+        "severidad": "Bajo",
+        "impacto": "Ejecución de JavaScript arbitrario en navegadores de usuarios, posible secuestro de sesión cuando se combina con otras vulnerabilidades, y defacement.",
+        "detailed_proof_of_concept": "POC: Enviar comentario con payload <script>alert(\"XSS\")</script>; al leer/mostrar el documento, el script se ejecuta (ej. en /document/1).",
+        "evidencias_adicionales": []
+      }
+    ],
+    "recomendaciones": [
+      {
+        "prioridad": "Alta",
+        "accion": "Validación y control de URL",
+        "descripcion": "Implementar validación estricta de URLs suministradas por usuarios, usar allowlist de dominios permitidos y bloquear direcciones internas o IPs no autorizadas; segmentar red para limitar accesos desde el servidor de la aplicación."
+      },
+      {
+        "prioridad": "Alta",
+        "accion": "Protección de consultas SQL",
+        "descripcion": "Utilizar consultas parametrizadas/prepared statements, validar y sanitizar entradas, aplicar el principio de mínimo privilegio para cuentas de base de datos y activar reglas de detección de inyección (WAF)."
+      },
+      {
+        "prioridad": "Alta",
+        "accion": "Validación y sanitización de rutas/archivos",
+        "descripcion": "Validar y normalizar rutas de archivos, usar whitelists de archivos permitidos, evitar traversal de directorios y ejecutar con privilegios mínimos."
+      },
+      {
+        "prioridad": "Media",
+        "accion": "Controles de acceso y RBAC",
+        "descripcion": "Implementar controles de acceso robustos (RBAC/ACL), usar referencias indirectas a objetos, registrar intentos de acceso a recursos sensibles y exigir validación de permisos para cada solicitud de perfil."
+      },
+      {
+        "prioridad": "Baja",
+        "accion": "Protección contra XSS",
+        "descripcion": "Codificar adecuadamente la salida, implementar Content Security Policy (CSP), sanitizar entradas antes de almacenar y considerar renderizado seguro (p. ej., usar formatos con sanitación)."
+      }
+    ],
+    "datos_tecnicos": {
+      "entorno": "Aplicación web en http://localhost:5000/",
+      "endpoints_pruebas": [
+        "/api/fetch?api_key=insecure_api_key_123&url=http://internal-server/secret.txt",
+        "/login",
+        "/download?file=../../etc/passwd",
+        "/profile/2",
+        "/comment",
+        "/document/1"
+      ],
+      "credenciales_utilizadas": {
+        "Admin": {
+          "usuario": "admin",
+          "contrasena": "admin123"
+        },
+        "User": {
+          "usuario": "user1",
+          "contrasena": "user123"
+        }
+      },
+      "observaciones_abiertas": [
+        "Pruebas manuales indicaron SSRF vs recursos internos",
+        "Datos de credenciales de prueba expuestos en la sección de credenciales del reporte",
+        "Falta de controles de acceso detallados para rutas sensibles"
+      ]
+    },
+    "conclusiones": "La evaluación identificó vulnerabilidades críticas y altas que requieren remediation inmediata, especialmente SSRF, SQL Injection y LFI. IDOR y XSS almacenado presentan riesgos significativos. Se recomienda priorizar la remediación y adoptar un ciclo de vida seguro con pruebas periódicas para prevenir recurrencias.",
+    "informacion_adicional": {
+      "nota": "Evaluación realizada con credenciales de prueba y análisis manual.",
+      "recomendaciones_adicionales": [
+        "Realizar pruebas de seguridad periódicas (red-team/blue-team, penetración controlada).",
+        "Mantener todas las dependencias y framework actualizados.",
+        "Habilitar registro de eventos y monitoreo de seguridad.",
+        "Capacitar al equipo de desarrollo en prácticas de desarrollo seguro."
+      ]
+    }
+  },
+  "analisis_estatico": {
+    "vulnerabilidades_reportadas": 5,
+    "vulnerabilidades_vulnerables": 5,
+    "timestamp": "2025-08-15T06:15:28.834627",
+    "vulnerabilidades": [
+      {
+        "id": "VULN-UNKNOWN",
+        "nombre": "SSRF (Server-Side Request Forgery)",
+        "estado": "vulnerable",
+        "severidad": "Crítico",
+        "detalles": "{\n  \"id\": \"VULN-001\",\n  \"nombre\": \"Server-Side Request Forgery (SSRF)\",\n  \"estado\": \"vulnerable\",\n  \"evidencia\": \"Evidencia SSRF encontrada en testing-assets/vuln-app-main/app/routes/api_routes.py. En fetch_url(): url = request.args.get('url') obtiene un URL sin validación; luego se ejecuta requests.get(url, timeout=5, verify=False) y se devuelve response.text al cliente, permitiendo acceso a recursos internos. Este flujo coincide con el PoC descrito (GET /api/fetch?api_key=insecure_api_key_123&url=http://internal-server/secret.txt). Semgrep reporta SSRF en esa ruta (testing-assets/vuln-app-main/app/routes/api_routes.py:27 y 33).\"\n}",
+        "evidencia": "{\n  \"id\": \"VULN-001\",\n  \"nombre\": \"Server-Side Request Forgery (SSRF)\",\n  \"estado\": \"vulnerable\",\n  \"evidencia\": \"Evidencia SSRF encontrada en testing-assets/vuln-app-main/app/routes/api_routes.py. En..."
+      },
+      {
+        "id": "VULN-UNKNOWN",
+        "nombre": "Injection (SQL Injection)",
+        "estado": "vulnerable",
+        "severidad": "Alto",
+        "detalles": "{\n  \"id\": \"VULN-002\",\n  \"nombre\": \"SQL Injection\",\n  \"estado\": \"vulnerable\",\n  \"evidencia\": \"Se detecta construcción de SQL dinámico sin parametrización en la ruta de login: en app/routes/auth_routes.py, dentro de la función login(), tras intentar autenticación vía ORM, el código establece una conexión directa a MySQL y ejecuta una consulta construida mediante formateo de cadena: \\nquery = f\\\"SELECT * FROM user WHERE username = '{username}' AND (password_hash = '{password}' OR '{password}' = 'bypass')\\\". \\nEste uso de f-strings interpolando username y password directamente en la consulta facilita inyección SQL. Además, se crea un cursor (cursor = conn.cursor(dictionary=True)) y se ejecuta cursor.execute(query) sin parámetros, lo que agrava el riesgo. \\nComportamiento relevante del flujo: si la autenticación ORM falla, se ejecuta la consulta vulnerable; si la consulta devuelve datos, se crea un usuario y se inicia sesión, permitiendo bypass de autenticación mediante inyección. \\nPoC proporcionado en el reporte (payload de ejemplo): username=admin%27+or+%271%27%3D%271+-- y password=<cualquier valor>, que se traduciría en una consulta que podría devolver filas y permitir login sin credenciales válidas. \\nArchivos relevantes: app/routes/auth_routes.py (fragmento con la consulta vulnerable) y la sección de conexión MySQL (conn = mysql.connector.connect(...) y cursor.execute(query)).\"\n}",
+        "evidencia": "{\n  \"id\": \"VULN-002\",\n  \"nombre\": \"SQL Injection\",\n  \"estado\": \"vulnerable\",\n  \"evidencia\": \"Se detecta construcción de SQL dinámico sin parametrización en la ruta de login: en app/routes/auth_routes...."
+      },
+      {
+        "id": "VULN-UNKNOWN",
+        "nombre": "File Inclusion",
+        "estado": "vulnerable",
+        "severidad": "Alto",
+        "detalles": "{\n  \"id\": \"VULN-003\",\n  \"nombre\": \"Local File Inclusion (LFI)\",\n  \"estado\": \"vulnerable\",\n  \"evidencia\": \"Archivo: app/routes/main_routes.py. Función download_file(filename): obtiene filename desde el parámetro de ruta o de request.args (líneas asociadas a /download y /download/<path:filename>). Define base_dir = os.path.abspath('/') (raíz) y construye file_path mediante os.path.abspath(os.path.join(base_dir, filename.lstrip('/'))). No hay validación para restringir file_path a un directorio seguro (p. ej., uploads); solo verifica que el archivo exista y sea un archivo antes de devolverlo con send_file. Esto permite path traversal (p. ej., ../../etc/passwd) para acceder a archivos sensibles. Fragmentos relevantes: base_dir = os.path.abspath('/') y file_path = os.path.abspath(os.path.join(base_dir, filename.lstrip('/'))) (ver código en app/routes/main_routes.py).\"\n}",
+        "evidencia": "{\n  \"id\": \"VULN-003\",\n  \"nombre\": \"Local File Inclusion (LFI)\",\n  \"estado\": \"vulnerable\",\n  \"evidencia\": \"Archivo: app/routes/main_routes.py. Función download_file(filename): obtiene filename desde el..."
+      },
+      {
+        "id": "VULN-UNKNOWN",
+        "nombre": "Control de acceso / IDOR",
+        "estado": "vulnerable",
+        "severidad": "Medio",
+        "detalles": "{\n  \"id\": \"VULN-004\",\n  \"nombre\": \"Insecure Direct Object Reference (IDOR)\",\n  \"estado\": \"vulnerable\",\n  \"evidencia\": \"Se identifica IDOR en app/routes/main_routes.py, función view_profile(user_id). No hay decoración login_required ni verificación de permisos; el código obtiene el usuario con User.query.get_or_404(user_id) y recoge documentos con Document.query.filter_by(user_id=user_id).all(), además devuelve información sensible (email, is_admin, etc.) en profile.html. El comentario del código apunta explícitamente: 'IDOR Vulnerability: No se verifica si el usuario actual tiene permiso para ver este perfil'. El PoC descrito (GET /profile/2) podría exponer el perfil de otro usuario (user1).\"\n}",
+        "evidencia": "{\n  \"id\": \"VULN-004\",\n  \"nombre\": \"Insecure Direct Object Reference (IDOR)\",\n  \"estado\": \"vulnerable\",\n  \"evidencia\": \"Se identifica IDOR en app/routes/main_routes.py, función view_profile(user_id). N..."
+      },
+      {
+        "id": "VULN-UNKNOWN",
+        "nombre": "Cross-Site Scripting (XSS) - Almacenado",
+        "estado": "vulnerable",
+        "severidad": "Bajo",
+        "detalles": "{\n  \"id\": \"VULN-005\",\n  \"nombre\": \"Stored Cross-Site Scripting (XSS)\",\n  \"estado\": \"vulnerable\",\n  \"evidencia\": \"Tipo: XSS almacenado. Evidencia: 1) En app/routes/main_routes.py, la ruta /comment asigna content = request.form.get('content') y crea un nuevo Comment con ese contenido sin ninguna validación, saneamiento ni escape previo, por lo que el texto ingresado podría almacenarse tal cual en la base de datos. 2) init_db.py contiene un comentario de muestra con <script>alert(\\\"XSS\\\")</script>, lo que ilustra la inyección persistente de código. 3) Falta de escaping/saneamiento al mostrar comentarios en plantillas (no mostrado aquí) podría permitir que el script se ejecute en el navegador del usuario al visualizar el documento. 4) Semgrep ya detectó patrones sospechosos en código relacionado con entradas de usuario sin saneamiento. Archivos relevantes: app/routes/main_routes.py (def add_comment) y init_db.py (contenido de comentario).\"\n}",
+        "evidencia": "{\n  \"id\": \"VULN-005\",\n  \"nombre\": \"Stored Cross-Site Scripting (XSS)\",\n  \"estado\": \"vulnerable\",\n  \"evidencia\": \"Tipo: XSS almacenado. Evidencia: 1) En app/routes/main_routes.py, la ruta /comment asig..."
+      }
+    ]
+  },
+  "analisis_dinamico": {
+    "vulnerabilidades_reportadas": 5,
+    "vulnerabilidades_vulnerables": 4,
+    "timestamp": "2025-08-15T06:17:49.270750",
+    "tipo_analisis": "dinamico",
+    "vulnerabilidades": [
+      {
+        "id": "VULN-001",
+        "nombre": "Server-Side Request Forgery (SSRF)",
+        "estado": "vulnerable",
+        "severidad": "Crítico",
+        "detalles": "```json\n{\n  \"id\": \"VULN-001\",\n  \"nombre\": \"Server-Side Request Forgery (SSRF)\",\n  \"estado\": \"vulnerable\",\n  \"evidencia\": \"Se explotó SSRF contra /api/fetch permitiendo acceso a recurso interno. El PoC devolvió un secreto interno: INTERNAL_SECRET_FLAG{ssrf_test_successful_internal_access}\",\n  \"payload_usado\": \"/api/fetch?api_key=insecure_api_key_123&url=http://internal-server/secret.txt\",\n  \"respuesta_servidor\": \"INTERNAL_SECRET_FLAG{ssrf_test_successful_internal_access}\"\n}\n```",
+        "evidencia": "Se explotó SSRF contra /api/fetch permitiendo acceso a recurso interno. El PoC devolvió un secreto interno: INTERNAL_SECRET_FLAG{ssrf_test_successful_internal_access}",
+        "payload_usado": "/api/fetch?api_key=insecure_api_key_123&url=http://internal-server/secret.txt",
+        "respuesta_servidor": "INTERNAL_SECRET_FLAG{ssrf_test_successful_internal_access}"
+      },
+      {
+        "id": "VULN-002",
+        "nombre": "SQL Injection",
+        "estado": "no vulnerable",
+        "severidad": "Alto",
+        "detalles": "{\n  \"id\": \"VULN-002\",\n  \"nombre\": \"SQL Injection\",\n  \"estado\": \"no_vulnerable\",\n  \"evidencia\": \"Las pruebas con payloads de inyección SQL en el formulario de inicio de sesión no producen bypass de autenticación. Al reenviar el PoC (admin' or '1'='1' --) junto con una contraseña, el servidor devuelve un estado 200 y un mensaje de credenciales inválidas, sin redirigir a una sesión autenticada ni revelar datos de la base.\",\n  \"payload_usado\": \"username=admin%27+or+%271%27%3D%271+--&password=admin%27+or+%271%27%3D%271+-- (PoC SQLi: admin' or '1'='1' --)\",\n  \"respuesta_servidor\": \"Fragmento relevante: HTTP/1.1 200 OK y HTML que contiene <div class=\\\"alert alert-warning\\\">Usuario o contraseña inválidos</div> (indicando que no se obtuvo bypass de autenticación)\"\n}",
+        "evidencia": "Las pruebas con payloads de inyección SQL en el formulario de inicio de sesión no producen bypass de autenticación. Al reenviar el PoC (admin' or '1'='1' --) junto con una contraseña, el servidor devuelve un estado 200 y un mensaje de credenciales inválidas, sin redirigir a una sesión autenticada ni revelar datos de la base.",
+        "payload_usado": "username=admin%27+or+%271%27%3D%271+--&password=admin%27+or+%271%27%3D%271+-- (PoC SQLi: admin' or '1'='1' --)",
+        "respuesta_servidor": "Fragmento relevante: HTTP/1.1 200 OK y HTML que contiene <div class=\"alert alert-warning\">Usuario o contraseña inválidos</div> (indicando que no se obtuvo bypass de autenticación)"
+      },
+      {
+        "id": "VULN-003",
+        "nombre": "Local File Inclusion (LFI) / Path Traversal",
+        "estado": "vulnerable",
+        "severidad": "Alto",
+        "detalles": "{\n  \"id\": \"VULN-003\",\n  \"nombre\": \"Local File Inclusion (LFI) / Path Traversal\",\n  \"estado\": \"vulnerable\",\n  \"evidencia\": \"Se obtuvo acceso al contenido de /etc/passwd mediante traversal ../../ en la ruta /download?file=../../etc/passwd. Respuesta HTTP 200 con el contenido del archivo passwd.\",\n  \"payload_usado\": \"GET /download?file=../../etc/passwd\",\n  \"respuesta_servidor\": \"HTTP/1.1 200 OK\\nServer: gunicorn\\nDate: Fri, 15 Aug 2025 09:16:41 GMT\\nConnection: close\\nContent-Disposition: attachment; filename=passwd\\nContent-Type: application/octet-stream\\nContent-Length: 839\\nLast-Modified: Mon, 11 Aug 2025 00:00:00 GMT\\nCache-Control: no-cache\\nETag: \\\"1754870400.0-839-393413677\\\"\\n\\nroot:x:0:0:root:/root:/bin/bash\\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\\nbin:x:2:2:bin:/bin:/usr/sbin/nologin\\nsys:x:3:3:sys:/dev:/usr/sbin/nologin\\nsync:x:4:65534:sync:/bin:/bin/sync\\ngames:x:5:60:games:/usr/games:/usr/sbin/nologin\\nman:x:6:12:man:/var/cache/man:/usr/sbin/nologin\\nlp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin\\nmail:x:8:8:mail:/var/mail:/usr/sbin/nologin\\nnews:x:9:9:news:/var/spool/news:/usr/sbin/nologin\\nuucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin\\nproxy:x:13:13:proxy:/bin:/usr/sbin/nologin\\nwww-data:x:33:33:www-data:/var/www:/usr/sbin/nologin\\nbackup:x:34:34:backup:/var/backups:/usr/sbin/nologin\\nlist:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin\\nirc:x:39:39:ircd:/run/ircd:/usr/sbin/nologin\\n_apt:x:42:65534::/nonexistent:/usr/sbin/nologin\\nnobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin\"\n}",
+        "evidencia": "Se obtuvo acceso al contenido de /etc/passwd mediante traversal ../../ en la ruta /download?file=../../etc/passwd. Respuesta HTTP 200 con el contenido del archivo passwd.",
+        "payload_usado": "GET /download?file=../../etc/passwd",
+        "respuesta_servidor": "HTTP/1.1 200 OK\nServer: gunicorn\nDate: Fri, 15 Aug 2025 09:16:41 GMT\nConnection: close\nContent-Disposition: attachment; filename=passwd\nContent-Type: application/octet-stream\nContent-Length: 839\nLast-Modified: Mon, 11 Aug 2025 00:00:00 GMT\nCache-Control: no-cache\nETag: \"1754870400.0-839-393413677\"\n\nroot:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\nbin:x:2:2:bin:/bin:/usr/sbin/nologin\nsys:x:3:3:sys:/dev:/usr/sbin/nologin\nsync:x:4:65534:sync:/bin:/bin/sync\ngames:x:5:60:games:/usr/games:/usr/sbin/nologin\nman:x:6:12:man:/var/cache/man:/usr/sbin/nologin\nlp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin\nmail:x:8:8:mail:/var/mail:/usr/sbin/nologin\nnews:x:9:9:news:/var/spool/news:/usr/sbin/nologin\nuucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin\nproxy:x:13:13:proxy:/bin:/usr/sbin/nologin\nwww-data:x:33:33:www-data:/var/www:/usr/sbin/nologin\nbackup:x:34:34:backup:/var/backups:/usr/sbin/nologin\nlist:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin\nirc:x:39:39:ircd:/run/ircd:/usr/sbin/nologin\n_apt:x:42:65534::/nonexistent:/usr/sbin/nologin\nnobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin"
+      },
+      {
+        "id": "VULN-004",
+        "nombre": "Insecure Direct Object Reference (IDOR)",
+        "estado": "vulnerable",
+        "severidad": "Medio",
+        "detalles": "{\n  \"id\": \"VULN-004\",\n  \"nombre\": \"Insecure Direct Object Reference (IDOR)\",\n  \"estado\": \"vulnerable\",\n  \"evidencia\": \"La petición GET /profile/2 devuelve el perfil de un usuario distinto (User ID 2) sin controles de acceso. La página muestra datos personales (Usuario: user1, Email: user1@example.com, Rol: Regular User) y un bloque de Debug Information que confirma el ID de usuario y que Is Admin es False, evidenciando acceso no autorizado a información de otros usuarios.\",\n  \"payload_usado\": \"GET /profile/2\",\n  \"respuesta_servidor\": \"Fragmento relevante mostrado por el servidor: la página contiene 'user1's Profile', con 'Username: user1', 'Email: user1@example.com', 'Role: Regular User' y un bloque de Debug Information indicando 'User ID: 2' y 'Is Admin: False'.\"\n}",
+        "evidencia": "La petición GET /profile/2 devuelve el perfil de un usuario distinto (User ID 2) sin controles de acceso. La página muestra datos personales (Usuario: user1, Email: user1@example.com, Rol: Regular User) y un bloque de Debug Information que confirma el ID de usuario y que Is Admin es False, evidenciando acceso no autorizado a información de otros usuarios.",
+        "payload_usado": "GET /profile/2",
+        "respuesta_servidor": "Fragmento relevante mostrado por el servidor: la página contiene 'user1's Profile', con 'Username: user1', 'Email: user1@example.com', 'Role: Regular User' y un bloque de Debug Information indicando 'User ID: 2' y 'Is Admin: False'."
+      },
+      {
+        "id": "VULN-005",
+        "nombre": "Stored Cross-Site Scripting (XSS)",
+        "estado": "vulnerable",
+        "severidad": "Bajo",
+        "detalles": "{\n  \"id\": \"VULN-005\",\n  \"nombre\": \"Stored Cross-Site Scripting (XSS)\",\n  \"estado\": \"vulnerable\",\n  \"evidencia\": \"La página /document/1 muestra un payload XSS persistente en la sección de comentarios: <div class=\\\\\\\"mb-1\\\\\\\"><script>alert(\\\\\\\"XSS\\\\\\\")</script></div>. El intento POST a /comment con payload content=%3Cscript%3Ealert%28%22XSS%22%29%3C%2Fscript%3E devolvió 500, pero la página resultante contiene el script inyectado, lo que indica XSS almacenado.\",\n  \"payload_usado\": \"content=%3Cscript%3Ealert%28%22XSS%22%29%3C%2Fscript%3E\",\n  \"respuesta_servidor\": \"GET /document/1 devuelve el HTML que contiene el snippet: <div class=\\\\\\\"mb-1\\\\\\\"><script>alert(\\\\\\\"XSS\\\\\\\")</script></div>\"\n}",
+        "evidencia": "La página /document/1 muestra un payload XSS persistente en la sección de comentarios: <div class=\\\"mb-1\\\"><script>alert(\\\"XSS\\\")</script></div>. El intento POST a /comment con payload content=%3Cscript%3Ealert%28%22XSS%22%29%3C%2Fscript%3E devolvió 500, pero la página resultante contiene el script inyectado, lo que indica XSS almacenado.",
+        "payload_usado": "content=%3Cscript%3Ealert%28%22XSS%22%29%3C%2Fscript%3E",
+        "respuesta_servidor": "GET /document/1 devuelve el HTML que contiene el snippet: <div class=\\\"mb-1\\\"><script>alert(\\\"XSS\\\")</script></div>"
+      }
+    ]
+  },
+  "triage_final": {
+    "id_reporte": "triage_20250815_061955_856309de",
+    "fecha_generacion": "2025-08-15 06:19:55.516797",
+    "reporte_origen": "Vulnerability Assessment Report",
+    "resumen_triage": "Análisis de triage completado para 5 vulnerabilidades identificadas. \nSe encontraron 1 vulnerabilidades críticas y 4 de severidad alta. \n5 vulnerabilidades requieren atención inmediata o urgente (P0-P1). \nEl análisis se basó en evidencia real y contexto del entorno para asignar severidades y prioridades precisas.",
+    "total_vulnerabilidades": 5,
+    "distribucion_severidad": {
+      "crítica": 1,
+      "alta": 4,
+      "media": 0,
+      "baja": 0,
+      "informativa": 0
+    },
+    "distribucion_prioridad": {
+      "P0": 2,
+      "P1": 3,
+      "P2": 0,
+      "P3": 0,
+      "P4": 0
+    },
+    "vulnerabilidades": [
+      {
+        "id_vulnerabilidad": "SSRF-TRIAGE-001",
+        "nombre": "Server-Side Request Forgery (SSRF) en /api/fetch",
+        "descripcion_original": "La API /api/fetch permite que un atacante induce solicitudes a recursos internos al suministrar una URL manipulada, permitindo acceso a servicios internos.",
+        "severidad_original": "Crítico",
+        "severidad_triage": "crítica",
+        "justificacion_severidad": "La evidencia de prueba de concepto (POC) demuestra que la API /api/fetch puede inducir solicitudes a recursos internos manipulando la URL. La respuesta contiene un flag de prueba INTERNAL_SECRET_FLAG{ssrf_test_successful_internal_access} y detalles del entorno interno (Hostname: internal-server, Servicio: nginx). Esto indica exposición directa a la red interna, posible divulgación de información sensible y posible pivot a otros sistemas internos. Dado el acceso a recursos internos y la posibilidad de obtener datos sensibles, la severidad debe considerarse crítica.",
+        "prioridad": "P0",
+        "justificacion_prioridad": "Acceso inmediato (<24h) requerido debido a la exposición de recursos internos, filtración de secretos y el potencial de pivotar hacia componentes críticos de la red interna. La evidencia demuestra explotación exitosa en un endpoint público que podría ser abusado por atacantes.",
+        "evidencias": [
+          {
+            "tipo_evidencia": "respuesta_http",
+            "descripcion": "POC HTTP GET que demuestra SSRF con acceso a un recurso interno y respuesta que incluye un secret flag y detalles del host interno.",
+            "contenido": "INTERNAL_SECRET_FLAG{ssrf_test_successful_internal_access} | Hostname: internal-server, Servicio: nginx",
+            "ubicacion": "endpoint: /api/fetch; consulta: ?api_key=insecure_api_key_123&url=http://internal-server/secret.txt; método: GET",
+            "criticidad_evidencia": "alto"
+          }
+        ],
+        "impacto_real": "Impacto observado y potencial basado en evidencia: lectura de un recurso interno (secret.txt) desde una URL manipulada, filtrado de un secret flag y descubrimiento de detalles internos (Hostname: internal-server; Servicio: nginx). Esto implica posible exposición de información de infraestructura, posible extracción de secretos y riesgo de uso indebido para ataques laterales o escaneo de más servicios internos.",
+        "probabilidad_explotacion": "alta",
+        "recomendaciones": [
+          {
+            "tipo": "inmediata",
+            "descripcion": "Revocar o rotar de inmediato la clave API expuesta (insecure_api_key_123) y revisar otros tokens/credenciales expuestos en el servicio.",
+            "pasos_implementacion": [
+              "Revoke o rotate la clave insecure_api_key_123",
+              "Revisión de código para eliminar credenciales incrustadas o expuestas en UI/endpoint",
+              "Aplicar control de acceso obligatorio para /api/fetch y/o deshabilitar la funcionalidad SSRF si no es necesaria"
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "alto"
+          },
+          {
+            "tipo": "correctiva",
+            "descripcion": "Mitigar SSRF en el código de la API y aplicar controles de validación de URL y salida bloqueada a redes internas.",
+            "pasos_implementacion": [
+              "Implementar allowlist de URLs/domínios permitidos (preferiblemente solo recursos externos necesarios)",
+              "Forzar uso de un proxy/egress con registro de salidas y filtrado de destinos internos",
+              "Deshabilitar la capacidad de la API para seguir redirecciones no confiables y establecer timeouts robustos",
+              "Agregar validación de entradas para evitar construcción de URLs maliciosas"
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "alto"
+          },
+          {
+            "tipo": "preventiva",
+            "descripcion": "Fortalecer monitorización, logs y detección de SSRF; implementar controles de salvaguarda para detectar accesos a recursos internos y alertar.",
+            "pasos_implementacion": [
+              "Habilitar registro detallado de solicitudes a /api/fetch (URL objetivo, origen, resultado)",
+              "Configurar alertas cuando se intenten accesos a rangos de direcciones internas",
+              "Realizar revisiones periódicas de listas de URLs permitidas y auditoría de endpoints que usan SSRF"
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "medio"
+          },
+          {
+            "tipo": "mitigación",
+            "descripcion": "Medidas temporales para reducir riesgo mientras se aplica la corrección definitiva.",
+            "pasos_implementacion": [
+              "Aplicar una lista blanca de hosts permitidos y bloquear cualquier intento de acceso a demás direcciones internas",
+              "Implementar rate limiting en /api/fetch para evitar abuso masivo",
+              "Usar un servicio de proxy seguro para salidas y normalizar/inspectar el tráfico saliente"
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "bajo"
+          }
+        ],
+        "fecha_triage": "2025-08-15 06:18:13.288213",
+        "confianza_analisis": 0.95,
+        "requiere_validacion_manual": false,
+        "notas_adicionales": "La evidencia sugiere que el sistema expone una clave API y devuelve información interna a través de la respuesta. Es fundamental revisar otros endpoints y credentials potencialmente expuestos, verificar si hay más rutas vulnerables y encapsular la funcionalidad SSRF detrás de controles de seguridad sólidos (allowlist, proxy y auditoría).",
+        "estado_vulnerabilidad": "vulnerable",
+        "explicacion_estado": "Vulnerabilidad confirmada por análisis dinámico"
+      },
+      {
+        "id_vulnerabilidad": "VULN-002-SQLI-LOGIN",
+        "nombre": "SQL Injection en formulario de inicio de sesión",
+        "descripcion_original": "El formulario de inicio de sesión es susceptible a inyección SQL, lo que podría permitir eludir la autenticación o extraer información de la base de datos.",
+        "severidad_original": "Alto",
+        "severidad_triage": "alta",
+        "justificacion_severidad": "La evidencia de PoC muestra un bypass de autenticación mediante SQLi en /login, lo que podría permitir acceso no autorizado a la aplicación y potencial extracción de datos. Aunque la evidencia proviene de un único payload, el mecanismo descrito (tautología 'admin' or '1'='1') es un tipo de ataque ampliamente conocido y reproducible. Este acceso no autenticado podría conducir a compromiso completo del sistema y datos confidenciales si la autenticación está mal protegida. Se debe validar que la aplicación utiliza consultas parametrizadas y manejo adecuado de errores para confirmar el alcance real.",
+        "prioridad": "P0",
+        "justificacion_prioridad": "Autenticación bypass mediante SQLi que permite acceso no autorizado y potenciales operaciones en la base de datos. Es un vector crítico con probabilidad de explotación alta y impacto severo; requiere acción inmediata (<24h).",
+        "evidencias": [
+          {
+            "tipo_evidencia": "código",
+            "descripcion": "PoC de SQL Injection en login demostrando bypass mediante payload 'admin' or '1'='1'",
+            "contenido": "'admin' or '1'='1' en POST /login",
+            "ubicacion": "POST /login",
+            "criticidad_evidencia": "alto"
+          },
+          {
+            "tipo_evidencia": "respuesta_http",
+            "descripcion": "Respuesta indica redirección a '/' y establecimiento de sesión sin validación adecuada",
+            "contenido": "Redirección a '/' y sesión establecida sin verificación",
+            "ubicacion": "Endpoint: POST /login",
+            "criticidad_evidencia": "alto"
+          }
+        ],
+        "impacto_real": "Acceso no autorizado a la aplicación y a la base de datos; posibilidad de extracción o modificación de datos, escalamiento de privilegios y compromiso total si el atacante puede navegar a funciones administrativas.",
+        "probabilidad_explotacion": "alta",
+        "recomendaciones": [
+          {
+            "tipo": "inmediata",
+            "descripcion": "Activar monitoreo y controles temporales para detectar y bloquear intentos de SQLi en /login; configurar WAF para patrones de SQLi y registrar intentos de autenticación anómalos.",
+            "pasos_implementacion": [
+              "Habilitar alertas de SQLi en el WAF para /login",
+              "Revisar logs de intentos de login para identificar patrones de ataque",
+              "Deshabilitar o bloquear temporalmente endpoints críticos si se detectan ataques activos"
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "alto"
+          },
+          {
+            "tipo": "correctiva",
+            "descripcion": "Reescribir las consultas de inicio de sesión para usar consultas parametrizadas/prepared statements o utilizar ORM; eliminar concatenaciones de SQL con entradas de usuario; validar y sanear entradas.",
+            "pasos_implementacion": [
+              "Auditar el código del login para detectar consultas dinámicas basadas en entradas de usuario",
+              "Aplicar consultas parametrizadas o ORM en todas las consultas relacionadas con autenticación",
+              "Implementar manejo de errores que no exponga detalles de la base de datos",
+              "Ejecutar pruebas de SQLi en /login y otras rutas críticas"
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "alto"
+          },
+          {
+            "tipo": "preventiva",
+            "descripcion": "Fortalecer la postura de autenticación y acceso: mínimo privilegio de la cuenta de la app en la BD, habilitar MFA, y monitorización continua de eventos de autenticación.",
+            "pasos_implementacion": [
+              "Revisar y reducir privilegios de la cuenta de la aplicación en la base de datos",
+              "Habilitar MFA para accesos administrativos y/o sensibles",
+              "Configurar auditoría de accesos y alertas para inicios de sesión inusuales"
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "medio"
+          },
+          {
+            "tipo": "mitigación",
+            "descripcion": "Medidas temporales si no se puede parchear de inmediato: aplicar reglas WAF específicas para bloquear patrones de SQLi, limitar tasas de intento de inicio de sesión y asegurar cookies (HttpOnly, Secure, SameSite).",
+            "pasos_implementacion": [
+              "Definir y aplicar reglas WAF para patrones comunes de SQLi en /login",
+              "Habilitar rate limiting y bloqueo temporal ante múltiples intentos fallidos",
+              "Asegurar sesiones con cookies seguras y cifrado de canal (HTTPS)"
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "alto"
+          }
+        ],
+        "fecha_triage": "2025-08-15 06:18:35.678091",
+        "confianza_analisis": 0.95,
+        "requiere_validacion_manual": false,
+        "notas_adicionales": "Verificar si existen otros endpoints susceptibles a SQLi; confirmar alcance de la base de datos expuesta y realizar pruebas de penetración adicionales para validar la presencia de otras vectores de ataque.",
+        "estado_vulnerabilidad": "no_vulnerable",
+        "explicacion_estado": "Vulnerabilidad no confirmada por ningún análisis. Análisis dinámico: Las pruebas con payloads de inyección SQL en el formulario de inicio de sesión no producen bypass de autenticación. Al reenviar el PoC (admin' or '1'='1' --) junto con una contraseña, el servidor devuelve un estado 200 y un mensaje de credenciales inválidas, sin redirigir a una sesión autenticada ni revelar datos de la base."
+      },
+      {
+        "id_vulnerabilidad": "VULN-003-LFI-TRIAGE",
+        "nombre": "Local File Inclusion (Path Traversal) - Descarga de archivos expuesta",
+        "descripcion_original": "La funcionalidad de descarga de archivos es vulnerable a path traversal, permitiendo acceso no autorizado a archivos del sistema.",
+        "severidad_original": "Alto",
+        "severidad_triage": "alta",
+        "justificacion_severidad": "La evidencia muestra una vulnerabilidad de path traversal en un endpoint de descarga (/download?file=../../etc/passwd) que devuelve contenidos del sistema operativo (/etc/passwd). Aunque /etc/passwd no contiene contraseñas en sistemas modernos, sí permite enumerar usuarios, UID/GID y shells, lo que facilita reconocimiento y posibles vectores de ataque. No se observa evidencia de RCE en el PoC proporcionado, pero la exposición de archivos sensibles y la posibilidad de combinar con otras fallas para explotar permisos o ejecutar código hacen que la severidad sea alta.",
+        "prioridad": "P1",
+        "justificacion_prioridad": "El endpoint de descarga es accesible y permite leer archivos sensibles del sistema (ej. /etc/passwd). Esto facilita reconocimiento y podría facilitar drill-down hacia otros archivos sensibles o configuraciones; existe riesgo de escalamiento si se combina con otra vulnerabilidad (p. ej., LFI que permite incluir archivos de configuración o código). Requiere acción urgente dentro de la próxima semana.",
+        "evidencias": [
+          {
+            "tipo_evidencia": "respuesta_http",
+            "descripcion": "Respuesta HTTP expone contenido de /etc/passwd a través del parámetro file en el endpoint de descarga.",
+            "contenido": "root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/dev/null:/bin/false\nbin:x:2:2:bin:/bin:/bin/bash\nsys:x:3:3:sys:/dev/null:/bin/false",
+            "ubicacion": "GET /download?file=../../etc/passwd",
+            "criticidad_evidencia": "alto"
+          }
+        ],
+        "impacto_real": "Exposición de archivos sensibles del sistema (ej. /etc/passwd) permitiendo enumeración de usuarios y shells. No se exponen contraseñas directamente en /etc/passwd en sistemas moderns, pero sí información suficiente para planear ataques de autenticación/social engineering o para localizar posibles archivos de configuración. Potencial para escalada si se combinan con otros vectores de ataque.",
+        "probabilidad_explotacion": "alta",
+        "recomendaciones": [
+          {
+            "tipo": "inmediata",
+            "descripcion": "Deshabilitar temporalmente el endpoint de descarga para usuarios no autorizados o aplicar autenticación/autoridad de acceso estricta hasta aplicar corrección.",
+            "pasos_implementacion": [
+              "Restringir /download solo a usuarios autenticados y autorizados",
+              "Deshabilitar /download de forma temporal si no se puede asegurar control de acceso",
+              "Activar logging detallado de intentos de path traversal",
+              "Comprobar otros endpoints que acepten rutas de archivo"
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "alto"
+          },
+          {
+            "tipo": "correctiva",
+            "descripcion": "Corrección en el código para evitar path traversal: validar y sanear el parámetro file; utilizar rutas absolutas canónicas y whitelisting de archivos permitidos; no permitir lectura de directorios fuera de un directorio permitido.",
+            "pasos_implementacion": [
+              "Realpath y verificación de que la ruta solicitada esté dentro de un directorio permitido",
+              "Implementar whitelisting de archivos permitidos o mapear archivos por IDs seguros",
+              "Evitar incluir nombres de archivos proporcionados por el usuario sin validación",
+              "Mover archivos descargables fuera del web root si es posible"
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "alto"
+          },
+          {
+            "tipo": "preventiva",
+            "descripcion": "Integrar pruebas de seguridad en el ciclo de desarrollo: SAST/DAST enfocados en endpoints de descarga, revisión de código para validaciones de entrada y pruebas de path traversal.",
+            "pasos_implementacion": [
+              "Añadir pruebas automatizadas de path traversal en CI",
+              "Revisión de pares de código para manejo de rutas y archivos",
+              "Auditoría de permisos de archivos y políticas de acceso"
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "medio"
+          },
+          {
+            "tipo": "mitigación",
+            "descripcion": "Medidas temporales mientras se aplica la corrección: aplicar reglas en WAF/ModSecurity para bloquear patrones de path traversal (..\n, /../, etc.) en parámetros de archivos.",
+            "pasos_implementacion": [
+              "Configurar reglas WAF para bloquear ../../, /./, %2e%2e%2f en el parámetro file",
+              "Monitorear y ajustar reglas para evitar falsos positivos",
+              "Mantener registro de intentos y alertas de seguridad"
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "medio"
+          }
+        ],
+        "fecha_triage": "2025-08-15 06:18:56.622309",
+        "confianza_analisis": 0.95,
+        "requiere_validacion_manual": false,
+        "notas_adicionales": "Revisión recomendada de otros endpoints que acepten rutas o nombres de archivos. Confirmar si el acceso actual requiere autenticación y si otros archivos fuera de /etc/passwd son accesibles. Considerar la posibilidad de que exista exposición adicional (logs, configuraciones, archivos de proyecto) si no hay controles consistentes.",
+        "estado_vulnerabilidad": "vulnerable",
+        "explicacion_estado": "Vulnerabilidad confirmada por análisis estático"
+      },
+      {
+        "id_vulnerabilidad": "VULN-004-IDOR-PERFIL",
+        "nombre": "Insecure Direct Object Reference (IDOR) en perfiles de usuario",
+        "descripcion_original": "La aplicación no aplica controles de acceso adecuados en las páginas de perfil de usuario, permitiendo ver perfiles de otros usuarios modificando el parámetro ID.",
+        "severidad_original": "Medio",
+        "severidad_triage": "alta",
+        "justificacion_severidad": "La evidencia muestra que una referencia directa a un objeto (/profile/{id}) devuelve datos de otro usuario sin verificación adecuada de permisos. Se expone información personal (usuario, correo) y rol, lo que representa una filtración de PII y posible abuso para ataques de ingeniería social o suplantación. Aunque la vulnerabilidad se centra en la verificación de permisos, la facilidad de explotación (cambiar el ID en la URL) y el impacto en privacidad/regulatorio elevan la severidad por encima de medio.",
+        "prioridad": "P1",
+        "justificacion_prioridad": "Exposición de datos personales de otros usuarios a través de un endpoint de perfil con control de acceso deficiente. Es fácil de automatizar (cambiar IDs) y tiene implicaciones de cumplimiento (PII), por lo que requiere acción urgente dentro de la semana.",
+        "evidencias": [
+          {
+            "tipo_evidencia": "respuesta_http",
+            "descripcion": "POC que demuestra acceso no autorizado: GET /profile/2 devuelve información de usuario 1 (usuario, correo, rol).",
+            "contenido": "{\"id\":2, \"usuario\":\"usuario1\", \"correo\":\"usuario1@example.com\", \"rol\":\"usuario\"}",
+            "ubicacion": "endpoint: GET /profile/{id}",
+            "criticidad_evidencia": "alto"
+          }
+        ],
+        "impacto_real": "Exposición de datos personales (usuario, correo, rol) de otros usuarios. Potencial para ataques de phishing, suplantación de identidad y uso indebido de información para ataques posteriores. Riesgos de cumplimiento de privacidad (p. ej., GDPR/CCPA) según el alcance de la aplicación y la ubicación de los usuarios.",
+        "probabilidad_explotacion": "alta",
+        "recomendaciones": [
+          {
+            "tipo": "inmediata",
+            "descripcion": "Restringir el acceso a perfiles para que un usuario solo pueda ver su propio perfil u otros datos permitidos; retornar 403 para solicitudes no autorizadas.",
+            "pasos_implementacion": [
+              "Agregar verificación de autorización en el backend para /profile/{id} que compare el id solicitado con el id del usuario autenticado (desde JWT/session).",
+              "Si id_solicitado != id_autenticado, retornar 403 sin exponer datos del otro usuario.",
+              "Eliminar exposición de datos innecesarios en respuestas (evitar incluir campos sensibles si no son necesarios).",
+              "Ejecutar pruebas automatizadas que intenten acceder a perfiles de otros usuarios con diferentes IDs."
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "alto"
+          },
+          {
+            "tipo": "correctiva",
+            "descripcion": "Aplicar y desplegar controles de acceso adecuados en el endpoint /profile/{id} y/o repensar la arquitectura de recursos para evitar IDORs.",
+            "pasos_implementacion": [
+              "Revisar código del endpoint para añadir RBAC/ABAC específico al recurso perfil.",
+              "Adoptar un patrón de acceso basado en el usuario autenticado (no confiar en IDs proporcionados por el cliente).",
+              "Realizar pruebas de regresión de IDOR y pruebas de autorización en entornos de staging.",
+              "Auditar logs para detectar intentos de acceso no autorizado."
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "alto"
+          },
+          {
+            "tipo": "preventiva",
+            "descripcion": "Implementar controles de acceso a nivel de recurso de forma consistente y automatizada; añadir pruebas de IDOR en la suite de CI.",
+            "pasos_implementacion": [
+              "Establecer RBAC/ABAC centralizado para todos endpoints sensibles que operen sobre recursos de usuario.",
+              "Incorporar pruebas de autorización en pipelines de CI/CD (IDOR tests, boundary tests).",
+              "Revisión periódica de permisos y revisión de dependencias/contratos de API."
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "medio"
+          },
+          {
+            "tipo": "mitigación",
+            "descripcion": "Si no es posible corregir de inmediato, aplicar mitigaciones temporales: 403 para accesos no autorizados y ocultar información sensible en respuestas.",
+            "pasos_implementacion": [
+              "Retornar 403 en cualquier intento de acceder a perfiles ajenos.",
+              "Omitir datos sensibles de la respuesta cuando el usuario no está autorizado.",
+              "Activar monitoreo y alertas para accesos sospechosos a perfiles."
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "bajo"
+          }
+        ],
+        "fecha_triage": "2025-08-15 06:19:21.003266",
+        "confianza_analisis": 0.95,
+        "requiere_validacion_manual": false,
+        "notas_adicionales": "Recomendable realizar pruebas con varios roles (usuario, admin) y con diferentes IDs para confirmar que no se exponen datos de otros usuarios. Evaluar impacto regulatorio si la app maneja datos sensibles. Incluir pruebas de límites y enumeración de IDs en la batería de pruebas.",
+        "estado_vulnerabilidad": "vulnerable",
+        "explicacion_estado": "Vulnerabilidad confirmada por análisis dinámico"
+      },
+      {
+        "id_vulnerabilidad": "VULN-005",
+        "nombre": "Stored Cross-Site Scripting (XSS) en comentarios",
+        "descripcion_original": "La funcionalidad de comentarios es vulnerable a XSS almacenado, permitiendo inyección persistente de código JavaScript.",
+        "severidad_original": "Bajo",
+        "severidad_triage": "alta",
+        "justificacion_severidad": "La evidencia de PoC demuestra ejecución persistente de JavaScript al renderizar comentarios. Aunque la severidad original es baja, un XSS almacenado puede afectar a todos los usuarios que visualizan el recurso (ej. /document/1). La persistencia del payload y el potencial de defacement, junto con la posibilidad de robo de cookies o tokens si no están protegidos, elevan el riesgo. Carece de evidencias de mitigaciones actuales, por lo que se recomienda tratarlas como alta prioridad.",
+        "prioridad": "P1",
+        "justificacion_prioridad": "XSS almacenado con ejecución de payload en un recurso potencialmente público. Alto alcance y posibilidad de manipulación de la sesión y del contenido; requiere corrección dentro de una semana.",
+        "evidencias": [
+          {
+            "tipo_evidencia": "código",
+            "descripcion": "POC de XSS almacenado: payload <script>alert(\"XSS\")</script> insertado en un comentario; al leer /document/1, el script se ejecuta.",
+            "contenido": "<script>alert(\"XSS\")</script>",
+            "ubicacion": "/document/1 (comentarios asociados; endpoint de comentarios no especificado)",
+            "criticidad_evidencia": "alto"
+          }
+        ],
+        "impacto_real": "Ejecución de código JavaScript en navegadores de usuarios que leen el documento /document/1 a través de comentarios. Potencial para defacement y, si cookies/token expuestos (no HttpOnly) o sin CSP, posible robo de datos o sesión. El alcance depende de la visibilidad de los comentarios y de las protecciones existentes.",
+        "probabilidad_explotacion": "alta",
+        "recomendaciones": [
+          {
+            "tipo": "inmediata",
+            "descripcion": "Detener la ejecución de código no confiable en comentarios y aplicar escape/sanitización de entradas en almacenamiento y/o renderizado.",
+            "pasos_implementacion": [
+              "Identificar código de almacenamiento y renderizado de comentarios.",
+              "Aplicar escaping HTML en servidor al almacenar o renderizar (por ejemplo, transformar < > & ' \" a entidades HTML).",
+              "Si se permiten etiquetas HTML limitadas, usar una whitelist segura y validar el contenido.",
+              "Ejecutar pruebas de PoC para confirmar que el payload ya no se ejecuta."
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "alto"
+          },
+          {
+            "tipo": "correctiva",
+            "descripcion": "Revisar y refactorizar el renderizado de comentarios para usar escaping contextual adecuado (HTML escaping en todas las salidas).",
+            "pasos_implementacion": [
+              "Aplicar escaping en plantillas/markup (escape HTML en todas las salidas de comentarios).",
+              "Eliminar cualquier inserción de scripts no sanitized.",
+              "Repetir pruebas de vulnerabilidad con payloads comunes (script, iFrame, event handlers)."
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "alto"
+          },
+          {
+            "tipo": "preventiva",
+            "descripcion": "Implementar Content Security Policy (CSP) y controles de integridad para restringir la ejecución de scripts no confiables.",
+            "pasos_implementacion": [
+              "Agregar cabecera CSP: default-src 'self'; script-src 'self'; object-src 'none';",
+              "Si se necesitan scripts inline, usar nonces o hashes para permitir solo scripts aprobados;",
+              "Habilitar report-uri para CSP para detectar violaciones.",
+              "Probar exhaustivamente para evitar romper funcionalidad legítima."
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "alto"
+          },
+          {
+            "tipo": "mitigación",
+            "descripcion": "Si no se puede aplicar de inmediato la corrección completa, aplicar medidas temporales como filtrado de payloads en comentarios o WAF, y monitorizar actividades sospechosas.",
+            "pasos_implementacion": [
+              "Implementar reglas de WAF para bloquear etiquetas de script en entradas de comentarios.",
+              "Mostrar mensajes de error amigables en caso de entrada no válida.",
+              "Planificar la corrección permanente y validar con pruebas de seguridad."
+            ],
+            "recursos_necesarios": [],
+            "impacto_implementacion": "medio"
+          }
+        ],
+        "fecha_triage": "2025-08-15 06:19:55.516432",
+        "confianza_analisis": 0.95,
+        "requiere_validacion_manual": false,
+        "notas_adicionales": "Se recomienda obtener más evidencias de la exposición real (público vs interno), verificar si cookies son HttpOnly, y confirmar si CSP ya existe. Realizar pruebas de regresión para asegurar que la corrección no afecte la funcionalidad de comentarios.",
+        "estado_vulnerabilidad": "vulnerable",
+        "explicacion_estado": "Vulnerabilidad confirmada por análisis dinámico"
+      }
+    ],
+    "recomendaciones_generales": [
+      "URGENTE: Abordar inmediatamente las 1 vulnerabilidades críticas identificadas",
+      "Implementar un proceso de revisión de seguridad en el ciclo de desarrollo",
+      "Establecer monitoreo continuo de vulnerabilidades",
+      "Capacitar al equipo de desarrollo en prácticas de codificación segura"
+    ],
+    "plan_remediacion": [
+      {
+        "orden": 1,
+        "vulnerabilidad": "Server-Side Request Forgery (SSRF) en /api/fetch",
+        "prioridad": "P0",
+        "severidad": "crítica",
+        "acciones_principales": [
+          "Revocar o rotar de inmediato la clave API expuesta (insecure_api_key_123) y revisar otros tokens/credenciales expuestos en el servicio.",
+          "Mitigar SSRF en el código de la API y aplicar controles de validación de URL y salida bloqueada a redes internas.",
+          "Fortalecer monitorización, logs y detección de SSRF; implementar controles de salvaguarda para detectar accesos a recursos internos y alertar."
+        ],
+        "requiere_validacion": false
+      },
+      {
+        "orden": 2,
+        "vulnerabilidad": "SQL Injection en formulario de inicio de sesión",
+        "prioridad": "P0",
+        "severidad": "alta",
+        "acciones_principales": [
+          "Activar monitoreo y controles temporales para detectar y bloquear intentos de SQLi en /login; configurar WAF para patrones de SQLi y registrar intentos de autenticación anómalos.",
+          "Reescribir las consultas de inicio de sesión para usar consultas parametrizadas/prepared statements o utilizar ORM; eliminar concatenaciones de SQL con entradas de usuario; validar y sanear entradas.",
+          "Fortalecer la postura de autenticación y acceso: mínimo privilegio de la cuenta de la app en la BD, habilitar MFA, y monitorización continua de eventos de autenticación."
+        ],
+        "requiere_validacion": false
+      },
+      {
+        "orden": 3,
+        "vulnerabilidad": "Local File Inclusion (Path Traversal) - Descarga de archivos expuesta",
+        "prioridad": "P1",
+        "severidad": "alta",
+        "acciones_principales": [
+          "Deshabilitar temporalmente el endpoint de descarga para usuarios no autorizados o aplicar autenticación/autoridad de acceso estricta hasta aplicar corrección.",
+          "Corrección en el código para evitar path traversal: validar y sanear el parámetro file; utilizar rutas absolutas canónicas y whitelisting de archivos permitidos; no permitir lectura de directorios fuera de un directorio permitido.",
+          "Integrar pruebas de seguridad en el ciclo de desarrollo: SAST/DAST enfocados en endpoints de descarga, revisión de código para validaciones de entrada y pruebas de path traversal."
+        ],
+        "requiere_validacion": false
+      },
+      {
+        "orden": 4,
+        "vulnerabilidad": "Insecure Direct Object Reference (IDOR) en perfiles de usuario",
+        "prioridad": "P1",
+        "severidad": "alta",
+        "acciones_principales": [
+          "Restringir el acceso a perfiles para que un usuario solo pueda ver su propio perfil u otros datos permitidos; retornar 403 para solicitudes no autorizadas.",
+          "Aplicar y desplegar controles de acceso adecuados en el endpoint /profile/{id} y/o repensar la arquitectura de recursos para evitar IDORs.",
+          "Implementar controles de acceso a nivel de recurso de forma consistente y automatizada; añadir pruebas de IDOR en la suite de CI."
+        ],
+        "requiere_validacion": false
+      },
+      {
+        "orden": 5,
+        "vulnerabilidad": "Stored Cross-Site Scripting (XSS) en comentarios",
+        "prioridad": "P1",
+        "severidad": "alta",
+        "acciones_principales": [
+          "Detener la ejecución de código no confiable en comentarios y aplicar escape/sanitización de entradas en almacenamiento y/o renderizado.",
+          "Revisar y refactorizar el renderizado de comentarios para usar escaping contextual adecuado (HTML escaping en todas las salidas).",
+          "Implementar Content Security Policy (CSP) y controles de integridad para restringir la ejecución de scripts no confiables."
+        ],
+        "requiere_validacion": false
+      }
+    ],
+    "riesgo_general": "alto",
+    "score_riesgo": 7.6,
+    "version_agente": "1.0.0",
+    "configuracion_triage": {
+      "criterios_severidad": "Basado en evidencia real e impacto",
+      "criterios_prioridad": "P0-P4 basado en urgencia y impacto",
+      "fecha_analisis": "2025-08-15T06:19:55.516811"
+    }
+  },
+  "metadata": {
+    "fecha_analisis": "2025-08-15T06:19:55.703999",
+    "version_pipeline": "2.0.0",
+    "modelo_usado": "openai:gpt-5-nano",
+    "temperatura": 0.1,
+    "archivos_analizados": {
+      "pdf": "testing-assets/report.pdf",
+      "codigo_fuente": "testing-assets/vuln-app-main",
+      "url_objetivo": "http://localhost:5000"
+    }
+  }
+}
