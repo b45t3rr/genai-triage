@@ -222,47 +222,47 @@ python app.py complete-analysis --pdf testing-assets/report.pdf --source testing
 
 Al instante comienza la ejecución y el analisis del PDF, obteniendo la información de las vulnerabilidades incluidas en el reporte.
 
-[PDF](https://i.imgur.com/VKn1dAj.png)
+![PDF](https://i.imgur.com/VKn1dAj.png)
 
 Luego, comienza a correr el agente estatico, el cual ejecuta semgrep y correlaciona los resultados con las vulnerabilidades de el reporte.
 
-[Semgrep](https://i.imgur.com/7KWB61Q.png)
+![Semgrep](https://i.imgur.com/7KWB61Q.png)
 
 Al usar semgrep, se obtiene de forma mas sencilla que archivos o parte del codigo es vulnerable, haciendo que el analisis de esos archivos por parte del agente sea mas eficiente. El agente intera cada vulnerabilidad entrando en un bucle de analisis, el cual consiste determinar si la vulnerabilidad existe.
 
-[Leer archivo](https://i.imgur.com/BJ9w2L2.png)
+![Leer archivo](https://i.imgur.com/BJ9w2L2.png)
 
 El agente determina la existencia de la vulnerabilidad en base al analisis de los archivos y genera una conclusión.
 
-[Conclusión](https://i.imgur.com/WkosN9F.png)
+![Conclusión](https://i.imgur.com/WkosN9F.png)
 
 **Si en lugar de correr el complete-analysis, se corre el static-analysis, al finalizar el analisis, se obtiene una lista de vulnerabilidades con su respectiva conclusión (Sin hacer el triage, solo ejecución del agente estatico).**
 
-[Solo Estatico](https://i.imgur.com/qBlTHu2.png)
+![Solo Estatico](https://i.imgur.com/qBlTHu2.png)
 
 Luego de analizar todas las vulnerabilidades con el agente estatico, se procede a analizar las vulnerabilidades con el agente dinamico.
 
 El agente dinamico funciona de forma similar al agente estatico, pero en lugar de analizar el codigo fuente, se encarga de probar la vulnerabilidad de la aplicacion utilizando herramientas red (funciones para hacer solicitudes, nmap, ping, traceroute, etc.)
 
-[Agente dinamico](https://i.imgur.com/H8uxdPW.png)
+![Agente dinamico](https://i.imgur.com/H8uxdPW.png)
 
 De la misma forma genera una conclusión en base a las respuestas de las herramientas.
 
-[Conclusión Dinamico](https://i.imgur.com/LOfklri.png)
+![Conclusión Dinamico](https://i.imgur.com/LOfklri.png)
 
 **Si en lugar de correr el complete-analysis, se corre el dynamic-analysis, al finalizar el analisis, se obtiene una lista de vulnerabilidades con su respectiva conclusión (Sin hacer el triage, solo ejecución del agente dinamico).**
 
-[Dinamico](https://i.imgur.com/AcxiEMY.png)
+![Dinamico](https://i.imgur.com/AcxiEMY.png)
 
 Finalmente, se ejecuta el agente de triage para realizar el triage en base a los resultados obtenidos por ambos analisis, estatico y dinamico.
 
-[Triage1](https://i.imgur.com/XazOJLI.png)
+![Triage1](https://i.imgur.com/XazOJLI.png)
 
 Ordenando los resultados en base a su prioridad.
 
-[Triage2](https://i.imgur.com/CNPbfD9.png)
+![Triage2](https://i.imgur.com/CNPbfD9.png)
 
-La información mostrada en el JSON de salida puede observarse en ![demo_analysis.json](https://github.com/b45t3rr/genai-triage/blob/main/docs/demo_anaylisis.json)
+La información mostrada en el JSON de salida puede observarse en [demo_analysis.json](https://github.com/b45t3rr/genai-triage/blob/main/docs/demo_anaylisis.json)
 
 
 ## 🎯 Ejemplos de Triage de Vulnerabilidades
