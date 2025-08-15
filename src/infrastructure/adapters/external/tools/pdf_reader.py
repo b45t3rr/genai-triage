@@ -1,13 +1,27 @@
 import os
 from typing import Dict, Any
 from PyPDF2 import PdfReader
-from ...domain.interfaces import PDFReaderInterface
-from ...domain.entities import PDFDocument
-from ...domain.exceptions import PDFNotFoundError, InvalidPDFError, PDFReadError
+from src.domain.interfaces import PDFReaderInterface
+from src.domain.entities import PDFDocument
+from src.domain.exceptions import PDFNotFoundError, InvalidPDFError, PDFReadError
 
 
 class PyPDF2Reader(PDFReaderInterface):
     """Implementación del lector de PDF usando PyPDF2."""
+    
+    def can_read(self, file_path: str) -> bool:
+        """Verifica si puede leer el tipo de archivo."""
+        return file_path.lower().endswith('.pdf') and os.path.exists(file_path)
+    
+    def read_document(self, file_path: str) -> Dict[str, Any]:
+        """Lee un documento y retorna su contenido estructurado."""
+        pdf_document = self.read_pdf(file_path)
+        return {
+            "file_path": pdf_document.file_path,
+            "content": pdf_document.content,
+            "metadata": pdf_document.metadata,
+            "extracted_at": pdf_document.extracted_at.isoformat()
+        }
     
     def read_pdf(self, file_path: str) -> PDFDocument:
         """Lee un archivo PDF y extrae su contenido."""

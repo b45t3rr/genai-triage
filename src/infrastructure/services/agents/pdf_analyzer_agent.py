@@ -6,12 +6,12 @@ from langchain.tools import Tool
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema import SystemMessage, HumanMessage
-from ...domain.interfaces import ReportAnalyzerInterface, LLMInterface
-from ...domain.entities import SecurityReport
-from ...domain.exceptions import LLMConnectionError, ReportAnalysisError, JSONParsingError
+from src.domain.interfaces import SecurityAnalyzerInterface, LLMInterface
+from src.domain.entities import SecurityReport
+from src.domain.exceptions import LLMConnectionError, ReportAnalysisError, JSONParsingError
 
 
-class LangChainReportAnalyzer(ReportAnalyzerInterface):
+class LangChainReportAnalyzer(SecurityAnalyzerInterface):
     """Analizador de reportes usando LangChain."""
     
     def __init__(self, llm: LLMInterface):
@@ -86,12 +86,12 @@ Instrucciones:
 Contenido del reporte a analizar:
 """
 
-    def analyze_report(self, pdf_content: str) -> SecurityReport:
+    def analyze_content(self, content: str) -> SecurityReport:
         """Analiza el contenido del PDF y genera un reporte estructurado."""
         try:
             # Generar análisis usando el LLM
-            full_prompt = self.analysis_prompt + "\n\n" + pdf_content
-            response = self.llm.generate_response(self.analysis_prompt, pdf_content)
+            full_prompt = self.analysis_prompt + "\n\n" + content
+            response = self.llm.generate_response(self.analysis_prompt, content)
             
             # Limpiar la respuesta para asegurar que sea JSON válido
             response = response.strip()

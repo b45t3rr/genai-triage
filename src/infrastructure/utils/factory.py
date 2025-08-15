@@ -1,10 +1,10 @@
 """Factory para crear instancias de las dependencias."""
 
-from ...domain.interfaces import PDFReaderInterface, ReportAnalyzerInterface, LLMInterface
-from ...application.use_cases import ReadPDFReportUseCase
-from ..tools.pdf_reader import PyPDF2Reader
-from ..agents import LangChainReportAnalyzer, StaticAnalysisAgent
-from .llm_adapters import LLMFactory
+from ...domain.interfaces import PDFReaderInterface, SecurityAnalyzerInterface, LLMInterface
+from ...application.use_cases import ReadPDFUseCase
+from ..adapters.external.tools.pdf_reader import PyPDF2Reader
+from ..services.agents import LangChainReportAnalyzer, StaticAnalysisAgent
+# LLMFactory se importa dinámicamente para evitar importación circular
 from .config import get_settings, validate_environment, get_available_providers
 
 
@@ -20,6 +20,9 @@ class DependencyFactory:
     
     def create_llm(self, provider: str = None, model_name: str = None, temperature: float = None) -> LLMInterface:
         """Crea una instancia del LLM."""
+        # Importación dinámica para evitar importación circular
+        from ..adapters.llm.llm_adapters import LLMFactory
+        
         if provider is None:
             provider = self._settings.default_model_provider
         
@@ -33,7 +36,7 @@ class DependencyFactory:
         
         return LLMFactory.create_llm(provider, model_name, temperature)
     
-    def create_report_analyzer(self, llm: LLMInterface = None) -> ReportAnalyzerInterface:
+    def create_report_analyzer(self, llm: LLMInterface = None) -> SecurityAnalyzerInterface:
         """Crea una instancia del analizador de reportes."""
         if llm is None:
             llm = self.create_llm()
@@ -51,8 +54,8 @@ class DependencyFactory:
         model_name: str = None,
         temperature: float = None,
         pdf_reader: PDFReaderInterface = None,
-        report_analyzer: ReportAnalyzerInterface = None
-    ) -> ReadPDFReportUseCase:
+        report_analyzer: SecurityAnalyzerInterface = None
+    ) -> ReadPDFUseCase:
         """Crea una instancia del caso de uso principal."""
         if pdf_reader is None:
             pdf_reader = self.create_pdf_reader()
@@ -61,7 +64,7 @@ class DependencyFactory:
             llm = self.create_llm(provider, model_name, temperature)
             report_analyzer = self.create_report_analyzer(llm)
         
-        return ReadPDFReportUseCase(pdf_reader, report_analyzer)
+        return ReadPDFUseCase(pdf_reader, report_analyzer)
 
 
 # Instancia global del factory

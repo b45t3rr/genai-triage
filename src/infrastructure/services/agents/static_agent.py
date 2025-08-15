@@ -9,9 +9,10 @@ from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema import SystemMessage, HumanMessage
 from datetime import datetime
-from ...domain.interfaces import LLMInterface
-from ...domain.exceptions import LLMConnectionError, ReportAnalysisError, JSONParsingError
-from ..tools import FileReaderTool, SemgrepAnalyzerTool
+from src.domain.interfaces import LLMInterface
+from src.domain.exceptions import LLMConnectionError, ReportAnalysisError, JSONParsingError
+from ...adapters.external.tools.file_reader_tool import FileReaderTool
+from ...adapters.external.tools.semgrep_analyzer_tool import SemgrepAnalyzerTool
 from .pdf_analyzer_agent import LangChainReportAnalyzer
 
 
@@ -79,11 +80,11 @@ Comienza tu análisis ahora usando las herramientas disponibles.
     
     def _analyze_pdf_report(self, pdf_path: str) -> Dict[str, Any]:
         """Analiza el reporte PDF usando el agente existente."""
-        from ..tools.pdf_reader import PyPDF2Reader
+        from ...adapters.external.tools.pdf_reader import PyPDF2Reader
         
         pdf_reader = PyPDF2Reader()
         pdf_document = pdf_reader.read_pdf(pdf_path)
-        security_report = self.pdf_analyzer.analyze_report(pdf_document.content)
+        security_report = self.pdf_analyzer.analyze_content(pdf_document.content)
         
         return security_report.model_dump()
     

@@ -8,15 +8,15 @@ from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema import SystemMessage, HumanMessage
 
-from ...domain.interfaces import LLMInterface
-from ...domain.entities import (
+from src.domain.interfaces import LLMInterface
+from src.domain.entities import (
     TriageReport, 
     TriagedVulnerability, 
     TriageEvidence, 
     TriageRecommendation,
     SecurityReport
 )
-from ...domain.exceptions import LLMConnectionError, ReportAnalysisError, JSONParsingError
+from src.domain.exceptions import LLMConnectionError, ReportAnalysisError, JSONParsingError
 
 
 class TriageAgent:
@@ -93,7 +93,7 @@ Debes responder SIEMPRE en formato JSON válido con la siguiente estructura:
       "descripcion": "Descripción de la evidencia",
       "contenido": "Contenido específico de la evidencia",
       "ubicacion": "Ubicación específica (archivo:línea, endpoint, etc.)",
-      "criticidad_evidencia": "alta|media|baja"
+      "criticidad_evidencia": "alto|medio|bajo"
     }
   ],
   "recomendaciones": [

@@ -2,15 +2,8 @@
 
 from .config import Settings, get_settings, validate_environment, get_available_providers
 from .factory import DependencyFactory, get_factory
-from .llm_adapters import (
-    BaseLLMAdapter,
-    OpenAIAdapter,
-    XAIAdapter,
-    GeminiAdapter,
-    DeepSeekAdapter,
-    AnthropicAdapter,
-    LLMFactory
-)
+from .simple_factory import SimpleDependencyFactory, get_simple_factory, reset_factory
+# LLM adapters se importan dinámicamente para evitar importación circular
 from .mongodb_client import MongoDBClient
 
 __all__ = [
@@ -20,12 +13,8 @@ __all__ = [
     "get_available_providers",
     "DependencyFactory",
     "get_factory",
-    "BaseLLMAdapter",
-    "OpenAIAdapter",
-    "XAIAdapter",
-    "GeminiAdapter",
-    "DeepSeekAdapter",
-    "AnthropicAdapter",
-    "LLMFactory",
+    "SimpleDependencyFactory",
+    "get_simple_factory",
+    "reset_factory",
     "MongoDBClient"
 ]

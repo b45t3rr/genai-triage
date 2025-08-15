@@ -1108,9 +1108,9 @@ def complete_analysis(
             llm_adapter = factory.create_llm(provider, model_name, temperature)
             
             # Importar agentes
-            from ..infrastructure.agents.static_agent import StaticAnalysisAgent
-            from ..infrastructure.agents.dynamic_agent import DynamicAnalysisAgent
-            from ..infrastructure.agents.triage_agent import TriageAgent
+            from ..infrastructure.services.agents.static_agent import StaticAnalysisAgent
+            from ..infrastructure.services.agents.dynamic_agent import DynamicAnalysisAgent
+            from ..infrastructure.services.agents.triage_agent import TriageAgent
         
         # Paso 1: Análisis del PDF
         console.print("[blue]📄 Paso 1: Analizando reporte PDF...[/blue]")
@@ -1118,7 +1118,7 @@ def complete_analysis(
             pdf_reader = factory.create_pdf_reader()
             report_analyzer = factory.create_report_analyzer(llm_adapter)
             pdf_document = pdf_reader.read_pdf(pdf)
-            pdf_analysis = report_analyzer.analyze_report(pdf_document.content)
+            pdf_analysis = report_analyzer.analyze_content(pdf_document.content)
             pdf_result = pdf_analysis.model_dump()
         
         console.print(f"[green]✅ PDF analizado: {len(pdf_result.get('hallazgos_principales', []))} vulnerabilidades encontradas[/green]")
