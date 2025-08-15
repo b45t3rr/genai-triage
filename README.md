@@ -32,7 +32,7 @@
 - **Dependency Injection**: Factory pattern para gestión de dependencias
 - **Domain-Driven Design**: Modelado rico del dominio de seguridad
 
-*Un reporte explicativo con mas información como ejemplos, resultados y analisis se encuentra [AQUI](https://github.com/b45t3rr/genai-triage/blob/main/docs/report.mdhttps://github.com/b45t3rr/genai-triage/blob/main/docs/report.md)*
+*Un reporte explicativo con mas información como ejemplos, resultados y analisis se encuentra [AQUI](https://github.com/b45t3rr/genai-triage/blob/main/docs/report.md)*
 
 ## 📋 Tabla de Contenidos
 
